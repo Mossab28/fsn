@@ -1,0 +1,75 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      String   @default("MEMBER")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  documents    Document[]
+  activityLogs ActivityLog[]
+}
+
+model ActivityLog {
+  id         String   @id @default(cuid())
+  userId     String
+  action     String
+  entityType String
+  entityId   String?
+  entityName String?
+  metadata   String?
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+}
+
+model Document {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  filename    String
+  storedName  String
+  filePath    String
+  fileSize    Int
+  mimeType    String
+  categoryId  String?
+  tags        String    @default("[]")
+  authorName  String?
+  publishedAt DateTime?
+  uploadedBy  String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  uploader User      @relation(fields: [uploadedBy], references: [id])
+  category Category? @relation(fields: [categoryId], references: [id])
+
+  @@index([categoryId])
+  @@index([uploadedBy])
+}
+
+model Category {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  slug        String   @unique
+  description String?
+  color       String?
+  icon        String?
+  createdAt   DateTime @default(now())
+
+  documents Document[]
+}
