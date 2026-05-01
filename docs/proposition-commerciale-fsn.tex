@@ -1,0 +1,388 @@
+\documentclass[a4paper,12pt,french]{article}
+
+\usepackage{fontspec}
+\usepackage{polyglossia}
+\setdefaultlanguage{french}
+\usepackage{geometry}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{tabularx}
+\usepackage{longtable}
+\usepackage{booktabs}
+\usepackage{xcolor}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{parskip}
+\usepackage{array}
+\usepackage{amssymb}
+\usepackage{colortbl}
+
+% ─── Couleurs ────────────────────────────────────────────────────────────────
+\definecolor{accentgreen}{HTML}{00A88E}
+\definecolor{darkbg}{HTML}{0D1520}
+\definecolor{maintext}{HTML}{3F3F46}
+\definecolor{green3}{HTML}{16A34A}
+\definecolor{blue2}{HTML}{2563EB}
+\definecolor{orange1}{HTML}{D97706}
+\definecolor{lightgreen}{HTML}{F0FDF4}
+\definecolor{lightblue}{HTML}{EFF6FF}
+\definecolor{lightorange}{HTML}{FFFBEB}
+\definecolor{recogreen}{HTML}{DCFCE7}
+
+\geometry{top=2.2cm, bottom=2.2cm, left=2.2cm, right=2.2cm}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=accentgreen,
+  urlcolor=accentgreen,
+  pdfauthor={Moss'Ab Mirande-Ney},
+  pdftitle={Proposition — Plateforme FSN},
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\footnotesize\textcolor{maintext}{Plateforme FSN}}
+\fancyhead[R]{\footnotesize\textcolor{maintext}{Proposition commerciale}}
+\fancyfoot[C]{\footnotesize\textcolor{maintext}{\thepage}}
+\renewcommand{\headrulewidth}{0.4pt}
+
+\titleformat{\section}
+  {\Large\bfseries\color{darkbg}}
+  {\thesection.}{0.5em}{}
+  [\vspace{-0.5em}\textcolor{accentgreen}{\rule{\textwidth}{1pt}}]
+\titleformat{\subsection}
+  {\large\bfseries\color{darkbg}}
+  {\thesubsection.}{0.5em}{}
+\titleformat{\subsubsection}
+  {\normalsize\bfseries\color{maintext}}
+  {\thesubsubsection.}{0.5em}{}
+
+\begin{document}
+
+% ─── Page de garde ───────────────────────────────────────────────────────────
+\begin{titlepage}
+\begin{center}
+
+\vspace*{1.5cm}
+
+{\LARGE\bfseries\textcolor{darkbg}{Proposition de réalisation}}
+
+\vspace{0.4cm}
+
+{\Large\textcolor{accentgreen}{\rule{4cm}{2pt}}}
+
+\vspace{0.8cm}
+
+{\Large\textcolor{maintext}{Plateforme de Gestion Documentaire FSN}}
+
+\vspace{0.3cm}
+
+{\large\textcolor{maintext}{Deux formules adaptées à vos priorités}}
+
+\vspace{2cm}
+
+\begin{tabular}{ll}
+\textbf{Date}           & 13 avril 2026 \\
+\textbf{Destinataire}   & Robert Picard — FSN \\
+\textbf{Statut}         & Proposition \\
+\end{tabular}
+
+\vspace{2cm}
+
+{\small\textcolor{maintext}{
+Ce document présente deux formules de livraison pour la plateforme\\
+de gestion documentaire, construites à partir de vos retours du 10 avril 2026\\
+et du cahier de spécifications v1.1.\\[0.5em]
+Les deux formules couvrent le socle que vous avez identifié comme indispensable.\\
+Elles se distinguent par le niveau de profondeur sur le suivi\\
+des documents et la contribution des utilisateurs.
+}}
+
+\vfill
+
+{\footnotesize\textcolor{maintext}{\copyright\ 2026 — Tous droits réservés}}
+
+\end{center}
+\end{titlepage}
+
+% ═════════════════════════════════════════════════════════════════════════════
+\section{Rappel de vos priorités}
+
+Vous nous avez transmis le classement suivant, que nous reprenons tel quel :
+
+\vspace{0.5em}
+
+\begin{tabularx}{\textwidth}{c l X}
+\toprule
+\textbf{Priorité} & \textbf{Bloc} & \textbf{Référence cahier} \\
+\midrule
+\rowcolor{lightgreen}
+\textcolor{green3}{\textbf{***}} & Gestion des utilisateurs & §2 \\
+\rowcolor{lightgreen}
+\textcolor{green3}{\textbf{***}} & Stockage documentaire & §3.1 à 3.5 (dossiers, formats, upload, MP4, aperçu) \\
+\rowcolor{lightgreen}
+\textcolor{green3}{\textbf{***}} & Recherche et accès & §4 (mots-clés, contenu, filtres, annuaire) \\
+\rowcolor{lightgreen}
+\textcolor{green3}{\textbf{***}} & Sécurité et conformité & §6 \\
+\rowcolor{lightgreen}
+\textcolor{green3}{\textbf{***}} & Fonctions de base & §7 archivage, §8 interface, §9 journal, §10 exigences \\
+\addlinespace
+\rowcolor{lightblue}
+\textcolor{blue2}{\textbf{**}} & Versioning et cycle de vie & §3.6 et 3.7 \\
+\addlinespace
+\rowcolor{lightorange}
+\textcolor{orange1}{\textbf{*}} & Collaboration & §5 (édition, discussions, partage) \\
+\rowcolor{lightorange}
+\textcolor{orange1}{\textbf{*}} & IA générative & §1.4 (phase 2) \\
+\bottomrule
+\end{tabularx}
+
+\vspace{0.8em}
+
+Les deux formules ci-dessous intègrent l'intégralité des blocs \textcolor{green3}{\textbf{***}}. La différence porte sur les blocs \textcolor{blue2}{\textbf{**}} et \textcolor{orange1}{\textbf{*}}.
+
+% ═════════════════════════════════════════════════════════════════════════════
+\section{Comparatif des deux formules}
+
+{\small
+\renewcommand{\arraystretch}{1.35}
+\begin{longtable}{p{7.8cm} c c}
+\toprule
+& \textbf{Essentielle} & \textbf{Complète} \\
+& 2\,000\,€ HT & 2\,500\,€ HT \\
+\midrule
+\endfirsthead
+
+\toprule
+& \textbf{Essentielle} & \textbf{Complète} \\
+& 2\,000\,€ HT & 2\,500\,€ HT \\
+\midrule
+\endhead
+
+\bottomrule
+\endfoot
+
+\multicolumn{3}{l}{\textcolor{green3}{\textbf{Socle commun (inclus dans les deux formules)}}} \\
+\addlinespace
+
+Utilisateurs, groupes, annuaire, rôles (§2)
+  & \checkmark & \checkmark \\
+
+Dossiers hiérarchiques type Google Drive (§3.1)
+  & \checkmark & \checkmark \\
+
+Import d'arborescence existante via ZIP
+  & \checkmark & \checkmark \\
+
+Formats : PDF, Word, Excel, PPT, images (§3.2)
+  & \checkmark & \checkmark \\
+
+Transcription automatique MP4 (§3.3)
+  & \checkmark & \checkmark \\
+
+Upload drag \& drop + métadonnées (§3.4)
+  & \checkmark & \checkmark \\
+
+Page de détail avec aperçu intégré (§3.5)
+  & \checkmark & \checkmark \\
+
+Recherche mots-clés + contenu fichiers (§4)
+  & \checkmark & \checkmark \\
+
+Filtres avancés dont fourchette de dates (§4.3)
+  & \checkmark & \checkmark \\
+
+Sécurité, auth, RGPD, supervision (§6)
+  & \checkmark & \checkmark \\
+
+Tableau de bord, navigation, thème clair/sombre (§8)
+  & \checkmark & \checkmark \\
+
+Journal d'activité (§9)
+  & \checkmark & \checkmark \\
+
+Archivage et sauvegarde (§7)
+  & basique & complet \\
+
+\addlinespace
+\midrule
+\multicolumn{3}{l}{\textcolor{blue2}{\textbf{Versioning et cycle de vie}}} \\
+\addlinespace
+
+Numéro de version majeure / mineure en un clic
+  & \checkmark & \checkmark \\
+
+Historique des versions (consultation, téléchargement)
+  & — & \checkmark \\
+
+Restauration d'une version antérieure
+  & — & \checkmark \\
+
+Cycle de vie : 5 statuts avec droits dynamiques
+  & — & \checkmark \\
+
+Lien statut / version (incrémentation automatique)
+  & — & \checkmark \\
+
+\addlinespace
+\midrule
+\multicolumn{3}{l}{\textcolor{orange1}{\textbf{Collaboration}}} \\
+\addlinespace
+
+Contribution de type wiki (chaque membre ajoute sa part)
+  & — & \checkmark \\
+
+Historique des contributions (qui a modifié quoi)
+  & — & \checkmark \\
+
+Gestion par les administrateurs
+  & — & \checkmark \\
+
+Édition simultanée temps réel (type Google Docs)
+  & — & — \\
+
+Fils de discussion / partage e-mail
+  & — & — \\
+
+\addlinespace
+\midrule
+\multicolumn{3}{l}{\textcolor{maintext}{\textbf{IA générative (phase 2 — non incluse)}}} \\
+\addlinespace
+
+Recherche IA, assistant, résumés
+  & — & — \\
+
+\addlinespace
+\midrule
+\textbf{Tarif HT} & \textbf{2\,000\,€} & \textbf{2\,500\,€} \\
+
+\end{longtable}
+\renewcommand{\arraystretch}{1}
+}
+
+% ═════════════════════════════════════════════════════════════════════════════
+\newpage
+\section{Détail de chaque formule}
+
+\subsection{Formule Essentielle — 2\,000\,€ HT}
+
+Une plateforme de gestion documentaire complète, centrée sur le stockage, l'organisation et la recherche.
+
+\subsubsection{Contenu}
+
+\begin{itemize}[leftmargin=1.5em]
+  \item \textbf{Gestion des utilisateurs} : création, modification, suppression, rôles (administrateur, membre, lecteur), groupes, annuaire avec recherche.
+  \item \textbf{Arborescence de dossiers} : navigation type Google Drive, fil d'Ariane, modes grille/liste, couleurs personnalisables.
+  \item \textbf{Import en masse} : téléversement d'un ZIP qui reconstitue l'arborescence existante.
+  \item \textbf{Tous les formats} : PDF, Word, Excel, PowerPoint, images, texte, MP4 avec transcription automatique.
+  \item \textbf{Upload guidé} : glisser-déposer, métadonnées (titre, description, catégorie, auteur, tags).
+  \item \textbf{Page de détail} : aperçu intégré (PDF, images, lecteur vidéo), métadonnées, téléchargement.
+  \item \textbf{Recherche} : métadonnées et contenu des fichiers, extraits, filtres (catégorie, type, auteur, dossier, période), tri.
+  \item \textbf{Sécurité} : authentification, chiffrement, droits par dossier, conformité RGPD, mentions légales.
+  \item \textbf{Interface} : tableau de bord, barre latérale, mode clair/sombre.
+  \item \textbf{Journal d'activité} : traçabilité de toutes les actions.
+  \item \textbf{Archivage léger} : les documents peuvent être marqués comme archivés. Pas de cycle de vie à plusieurs statuts.
+\end{itemize}
+
+\subsubsection{Limites}
+
+\begin{itemize}[leftmargin=1.5em]
+  \item Versioning simplifié : numéro de version en un clic, mais pas d'historique des anciennes versions ni de restauration.
+  \item Pas de cycle de vie à 5 statuts.
+  \item Pas de contribution collaborative.
+\end{itemize}
+
+% ─────────────────────────────────────────────────────────────────────────────
+
+\subsection{Formule Complète — 2\,500\,€ HT}
+
+Tout le contenu de la Formule Essentielle, plus le \textbf{versioning complet} et une \textbf{collaboration de type wiki}.
+
+\subsubsection{Versioning et cycle de vie (en plus)}
+
+\begin{itemize}[leftmargin=1.5em]
+  \item \textbf{Versioning en un clic} : incrémentation majeure (1.0 → 2.0) ou mineure (1.2 → 1.3).
+  \item \textbf{Historique complet} : tableau des versions avec date, auteur, numéro. Consultation et téléchargement de toute version passée.
+  \item \textbf{Restauration} : un administrateur peut rétablir une version antérieure.
+  \item \textbf{Cycle de vie à 5 statuts} : Brouillon → Enrichissement → Relecture → Diffusion → Archivé. Les droits s'adaptent automatiquement.
+  \item \textbf{Lien statut / version} : changement de statut = proposition d'incrémentation. Les deux sont tracés ensemble.
+\end{itemize}
+
+\subsubsection{Collaboration wiki (en plus)}
+
+Plutôt qu'une édition temps réel type Google Docs, cette formule propose un modèle de contribution \textbf{wiki} :
+
+\begin{itemize}[leftmargin=1.5em]
+  \item Chaque membre autorisé peut ajouter sa contribution à un document.
+  \item Chaque contribution est tracée (qui, quoi, quand).
+  \item Un administrateur peut valider, modifier ou annuler une contribution.
+  \item L'historique des contributions est consultable.
+\end{itemize}
+
+Ce modèle couvre le besoin d'élaboration collective des documents, dans un cadre techniquement et budgétairement maîtrisé.
+
+% ═════════════════════════════════════════════════════════════════════════════
+\section{Ce que la Formule Complète apporte en plus}
+
+Pour donner une idée concrète de l'écart entre les deux formules :
+
+\vspace{0.5em}
+
+\begin{tabularx}{\textwidth}{l X}
+\toprule
+\textbf{Point} & \textbf{Ce que ça change au quotidien} \\
+\midrule
+
+\textbf{Versioning} &
+Quand quelqu'un met à jour un fichier, l'ancienne version est conservée et récupérable. Sans versioning, elle est remplacée sans retour possible. \\
+\addlinespace
+
+\textbf{Cycle de vie} &
+On voit d'un coup d'œil si un document est en cours de rédaction, en relecture ou diffusé. Les droits d'accès suivent automatiquement, ce qui évite de devoir les gérer à la main. \\
+\addlinespace
+
+\textbf{Wiki} &
+Les membres peuvent contribuer directement aux documents, pas seulement les consulter. Chaque apport est tracé. \\
+
+\bottomrule
+\end{tabularx}
+
+\vspace{0.8em}
+
+À noter que ces briques sont plus simples à intégrer dès le départ qu'à greffer après coup sur une plateforme déjà en production.
+
+% ═════════════════════════════════════════════════════════════════════════════
+\newpage
+\section{Ce qui reste en phase 2}
+
+Quelle que soit la formule choisie, les éléments suivants ne font pas partie de cette livraison. L'architecture est conçue pour les accueillir par la suite :
+
+\begin{itemize}[leftmargin=1.5em]
+  \item Édition collaborative temps réel (type Google Docs)
+  \item Fils de discussion par document et par dossier
+  \item Partage par e-mail avec lien direct
+  \item Recherche assistée par IA générative
+  \item Assistant conversationnel IA
+  \item Résumés automatiques / recherche de références académiques
+  \item Synchronisation hors ligne
+  \item Application mobile
+\end{itemize}
+
+% ═════════════════════════════════════════════════════════════════════════════
+\section{Délais et livrables}
+
+\begin{tabularx}{\textwidth}{l X X}
+\toprule
+& \textbf{Formule Essentielle} & \textbf{Formule Complète} \\
+\midrule
+Délai estimé & 3 semaines & 4 semaines \\
+\addlinespace
+Livrables & Plateforme déployée, code source, documentation technique, guide utilisateur & Idem + versioning, cycle de vie, module wiki \\
+\bottomrule
+\end{tabularx}
+
+\vspace{1.5em}
+
+Nous restons à votre disposition pour en discuter et ajuster si besoin. Les deux formules sont conçues pour s'inscrire dans l'enveloppe que vous avez définie, avec des périmètres clairs et un socle commun solide.
+
+\end{document}

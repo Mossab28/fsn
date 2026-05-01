@@ -1,0 +1,51 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
+import { prisma } from '@/lib/prisma'
+
+export async function GET(req: NextRequest) {
+  const session = await getServerSession(authOptions)
+  if (!session?.user) {
+    return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+  }
+
+  const { searchParams } = new URL(req.url)
+  const parentId = searchParams.get('parentId') // null = root
+
+  const folders = await prisma.folder.findMany({
+    where: { parentId: parentId || null },
+    include: {
+      _count: { select: { children: true, documents: true } },
+    },
+    orderBy: { name: 'asc' },
+  })
+
+  return NextResponse.json(folders)
+}
+
+export async function POST(req: NextRequest) {
+  const session = await getServerSession(authOptions)
+  if (!session?.user || session.user.role !== 'ADMIN') {
+    return NextResponse.json({ error: 'Non autorisé' }, { status: 403 })
+  }
+
+  const body = await req.json()
+  const { name, color, parentId } = body
+
+  if (!name || typeof name !== 'string' || name.trim().length === 0) {
+    return NextResponse.json({ error: 'Nom requis' }, { status: 400 })
+  }
+
+  const folder = await prisma.folder.create({
+    data: {
+      name: name.trim(),
+      color: color || null,
+      parentId: parentId || null,
+    },
+    include: {
+      _count: { select: { children: true, documents: true } },
+    },
+  })
+
+  return NextResponse.json(folder, { status: 201 })
+}

@@ -45,10 +45,14 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const sortOrder: 'asc' | 'desc' =
       sortOrderParam === 'asc' ? 'asc' : 'desc'
     const search = searchParams.get('search') ?? undefined
+    const folderId = searchParams.get('folderId')
 
     const where = {
       ...(categoryId ? { categoryId } : {}),
       ...(mimeType ? { mimeType } : {}),
+      ...(folderId !== null && folderId !== undefined
+        ? { folderId: folderId === '' ? null : folderId }
+        : {}),
       ...(search
         ? {
             OR: [
@@ -110,6 +114,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     const description = formData.get('description')
     const categoryId = formData.get('categoryId')
+    const folderId = formData.get('folderId')
     const tagsRaw = formData.get('tags')
     const authorName = formData.get('authorName')
     const publishedAtRaw = formData.get('publishedAt')
@@ -158,6 +163,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         categoryId:
           typeof categoryId === 'string' && categoryId.trim()
             ? categoryId.trim()
+            : null,
+        folderId:
+          typeof folderId === 'string' && folderId.trim()
+            ? folderId.trim()
             : null,
         tags: JSON.stringify(tags),
         authorName:

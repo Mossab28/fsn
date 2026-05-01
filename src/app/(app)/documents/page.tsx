@@ -1,158 +1,171 @@
 'use client'
 
-import React, { useState, useEffect, useCallback, useRef } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Upload,
-  ChevronLeft,
   ChevronRight,
+  ArrowLeft,
   Trash2,
   AlertCircle,
   Search,
   LayoutGrid,
   List,
+  FolderPlus,
+  Home,
+  Folder as FolderIcon,
+  MoreVertical,
+  Pencil,
+  FolderOpen,
 } from 'lucide-react'
 import { useSession } from 'next-auth/react'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Button } from '@/components/ui/Button'
 import { DocumentGrid } from '@/components/documents/DocumentGrid'
-import { FilterPanel } from '@/components/documents/FilterPanel'
-import type { DocumentWithRelations, Category, PaginatedResponse } from '@/types'
-
-const PAGE_SIZE = 12
+import type { DocumentWithRelations } from '@/types'
 
 type ViewMode = 'grid' | 'list'
+
+interface FolderData {
+  id: string
+  name: string
+  color: string | null
+  parentId: string | null
+  _count: { children: number; documents: number }
+}
+
+interface BreadcrumbItem {
+  id: string
+  name: string
+}
+
+const FOLDER_COLORS = [
+  '#3B82F6', '#8B5CF6', '#EC4899', '#F59E0B',
+  '#00A88E', '#EF4444', '#06B6D4', '#84CC16',
+]
+
+function getFolderColor(color: string | null, index: number): string {
+  return color || FOLDER_COLORS[index % FOLDER_COLORS.length]
+}
 
 export default function DocumentsPage() {
   const { data: session } = useSession()
   const isAdmin = session?.user?.role === 'ADMIN'
 
+  const [currentFolderId, setCurrentFolderId] = useState<string | null>(null)
+  const [folders, setFolders] = useState<FolderData[]>([])
   const [documents, setDocuments] = useState<DocumentWithRelations[]>([])
-  const [categories, setCategories] = useState<(Category & { documentCount?: number })[]>([])
-  const [total, setTotal] = useState(0)
-  const [totalPages, setTotalPages] = useState(1)
-  const [page, setPage] = useState(1)
+  const [breadcrumb, setBreadcrumb] = useState<BreadcrumbItem[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [viewMode, setViewMode] = useState<ViewMode>('grid')
-
-  // Filters state
   const [searchQuery, setSearchQuery] = useState('')
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([])
-  const [selectedTypes, setSelectedTypes] = useState<string[]>([])
-  const [sortBy, setSortBy] = useState('createdAt')
-  const [sortOrder, setSortOrder] = useState('desc')
 
-  // Delete confirm state
+  // Folder creation
+  const [showNewFolder, setShowNewFolder] = useState(false)
+  const [newFolderName, setNewFolderName] = useState('')
+  const [newFolderColor, setNewFolderColor] = useState<string | null>(null)
+
+  // Folder context menu
+  const [contextFolder, setContextFolder] = useState<string | null>(null)
+  const [renamingFolder, setRenamingFolder] = useState<string | null>(null)
+  const [renameValue, setRenameValue] = useState('')
+
+  // Delete confirm
   const [deleteId, setDeleteId] = useState<string | null>(null)
+  const [deletingType, setDeletingType] = useState<'document' | 'folder'>('document')
   const [isDeleting, setIsDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState('')
 
-  const fetchAbortRef = useRef<AbortController | null>(null)
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  // Load categories once
-  useEffect(() => {
-    fetch('/api/categories')
-      .then((res) => res.json())
-      .then((data: (Category & { documentCount?: number })[]) => setCategories(data))
-      .catch(console.error)
-  }, [])
-
-  const fetchDocuments = useCallback(async () => {
-    if (fetchAbortRef.current) fetchAbortRef.current.abort()
-    const controller = new AbortController()
-    fetchAbortRef.current = controller
-
+  const fetchContent = useCallback(async () => {
     setIsLoading(true)
 
-    const params = new URLSearchParams({
-      page: String(page),
-      pageSize: String(PAGE_SIZE),
-      sortBy,
-      sortOrder,
+    const folderParam = currentFolderId ? `?parentId=${currentFolderId}` : ''
+    const docParams = new URLSearchParams({
+      folderId: currentFolderId || '',
+      pageSize: '100',
+      sortBy: 'createdAt',
+      sortOrder: 'desc',
     })
-    if (searchQuery.trim()) params.set('search', searchQuery.trim())
-    // For categories, we use the first selected one (API supports single categoryId)
-    if (selectedCategories.length === 1) {
-      params.set('categoryId', selectedCategories[0])
-    }
-    // For mime type, use the first selected one
-    if (selectedTypes.length === 1) {
-      params.set('mimeType', selectedTypes[0])
+    if (searchQuery.trim()) docParams.set('search', searchQuery.trim())
+
+    const [foldersRes, docsRes, breadcrumbRes] = await Promise.all([
+      fetch(`/api/folders${folderParam}`),
+      fetch(`/api/documents?${docParams}`),
+      currentFolderId
+        ? fetch(`/api/folders/${currentFolderId}`)
+        : Promise.resolve(null),
+    ])
+
+    const foldersData = await foldersRes.json()
+    const docsData = await docsRes.json()
+
+    setFolders(foldersData)
+    setDocuments(docsData.data || [])
+
+    if (breadcrumbRes) {
+      const bcData = await breadcrumbRes.json()
+      setBreadcrumb(bcData.breadcrumb || [])
+    } else {
+      setBreadcrumb([])
     }
 
-    try {
-      const res = await fetch(`/api/documents?${params}`, { signal: controller.signal })
-      if (!res.ok) throw new Error('Failed to fetch documents')
-      const data: PaginatedResponse<DocumentWithRelations> = await res.json()
-
-      // Client-side filtering for multiple categories/types
-      let filtered = data.data
-      if (selectedCategories.length > 1) {
-        filtered = filtered.filter((d) => d.categoryId && selectedCategories.includes(d.categoryId))
-      }
-      if (selectedTypes.length > 1) {
-        filtered = filtered.filter((d) =>
-          selectedTypes.some((t) => d.mimeType.startsWith(t) || d.mimeType === t)
-        )
-      } else if (selectedTypes.length === 1 && selectedTypes[0] === 'image/') {
-        filtered = filtered.filter((d) => d.mimeType.startsWith('image/'))
-      }
-
-      setDocuments(filtered)
-      setTotal(data.total)
-      setTotalPages(data.totalPages)
-    } catch (err) {
-      if ((err as Error).name !== 'AbortError') {
-        console.error('Failed to fetch documents:', err)
-      }
-    } finally {
-      if (!controller.signal.aborted) {
-        setIsLoading(false)
-      }
-    }
-  }, [page, searchQuery, selectedCategories, selectedTypes, sortBy, sortOrder])
+    setIsLoading(false)
+  }, [currentFolderId, searchQuery])
 
   useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current)
-    debounceRef.current = setTimeout(() => {
-      fetchDocuments()
-    }, 300)
+    const timer = setTimeout(() => fetchContent(), 200)
+    return () => clearTimeout(timer)
+  }, [fetchContent])
 
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current)
-    }
-  }, [fetchDocuments])
-
-  const handleCategoryChange = useCallback((ids: string[]) => {
-    setSelectedCategories(ids)
-    setPage(1)
-  }, [])
-
-  const handleTypeChange = useCallback((types: string[]) => {
-    setSelectedTypes(types)
-    setPage(1)
-  }, [])
-
-  const handleSortChange = useCallback((newSortBy: string, newSortOrder: string) => {
-    setSortBy(newSortBy)
-    setSortOrder(newSortOrder)
-    setPage(1)
-  }, [])
-
-  const handleReset = useCallback(() => {
-    setSelectedCategories([])
-    setSelectedTypes([])
-    setSortBy('createdAt')
-    setSortOrder('desc')
+  const navigateToFolder = (folderId: string | null) => {
+    setCurrentFolderId(folderId)
     setSearchQuery('')
-    setPage(1)
-  }, [])
+    setContextFolder(null)
+    setRenamingFolder(null)
+  }
 
-  const handleDeleteRequest = useCallback((id: string) => {
+  const goBack = () => {
+    if (breadcrumb.length >= 2) {
+      navigateToFolder(breadcrumb[breadcrumb.length - 2].id)
+    } else {
+      navigateToFolder(null)
+    }
+  }
+
+  const handleCreateFolder = async () => {
+    if (!newFolderName.trim()) return
+    await fetch('/api/folders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: newFolderName.trim(),
+        color: newFolderColor,
+        parentId: currentFolderId,
+      }),
+    })
+    setNewFolderName('')
+    setNewFolderColor(null)
+    setShowNewFolder(false)
+    fetchContent()
+  }
+
+  const handleRenameFolder = async (folderId: string) => {
+    if (!renameValue.trim()) return
+    await fetch(`/api/folders/${folderId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: renameValue.trim() }),
+    })
+    setRenamingFolder(null)
+    setRenameValue('')
+    fetchContent()
+  }
+
+  const handleDeleteRequest = (id: string, type: 'document' | 'folder') => {
     setDeleteId(id)
+    setDeletingType(type)
     setDeleteError('')
-  }, [])
+  }
 
   const handleDeleteConfirm = async () => {
     if (!deleteId) return
@@ -160,13 +173,16 @@ export default function DocumentsPage() {
     setDeleteError('')
 
     try {
-      const res = await fetch(`/api/documents/${deleteId}`, { method: 'DELETE' })
+      const url = deletingType === 'folder'
+        ? `/api/folders/${deleteId}`
+        : `/api/documents/${deleteId}`
+      const res = await fetch(url, { method: 'DELETE' })
       if (!res.ok) {
         const body = await res.json()
         throw new Error(body.error ?? 'Erreur lors de la suppression')
       }
       setDeleteId(null)
-      fetchDocuments()
+      fetchContent()
     } catch (err) {
       setDeleteError((err as Error).message)
     } finally {
@@ -174,290 +190,449 @@ export default function DocumentsPage() {
     }
   }
 
-  const documentCounts: Record<string, number> = {}
-  categories.forEach((cat) => {
-    if (cat.documentCount !== undefined) {
-      documentCounts[cat.id] = cat.documentCount
-    }
-  })
-
-  const pageStart = (page - 1) * PAGE_SIZE + 1
-  const pageEnd = Math.min(page * PAGE_SIZE, total)
+  const totalItems = folders.length + documents.length
 
   return (
     <>
       <PageHeader
         title="Documents"
         description={
-          !isLoading && total > 0
-            ? `${total} document${total > 1 ? 's' : ''} disponible${total > 1 ? 's' : ''}`
+          !isLoading && totalItems > 0
+            ? `${folders.length} dossier${folders.length !== 1 ? 's' : ''}, ${documents.length} document${documents.length !== 1 ? 's' : ''}`
             : undefined
         }
         action={
           isAdmin ? (
-            <Button
-              variant="primary"
-              icon={<Upload size={15} />}
-              onClick={() => alert('Fonctionnalité bientôt disponible — les documents seront ajoutés manuellement.')}
-            >
-              Ajouter un document
-            </Button>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <Button
+                variant="secondary"
+                icon={<FolderPlus size={15} />}
+                onClick={() => setShowNewFolder(true)}
+              >
+                Nouveau dossier
+              </Button>
+              <Button
+                variant="primary"
+                icon={<Upload size={15} />}
+                onClick={() => alert('Fonctionnalité bientôt disponible')}
+              >
+                Ajouter
+              </Button>
+            </div>
           ) : undefined
         }
       />
 
-      {/* Main layout: content + filter panel */}
-      <div
-        style={{
-          display: 'flex',
-          gap: '0',
-          minHeight: '600px',
-        }}
-      >
-        {/* Left: search + grid */}
-        <div style={{ flex: 1, minWidth: 0, padding: '20px 24px 40px' }}>
-          {/* Search bar + view toggle row */}
-          <div
+      <div style={{ padding: '0 24px 40px' }}>
+        {/* Breadcrumb + back button */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '12px 0 16px',
+            fontSize: '14px',
+            fontFamily: 'var(--font-body)',
+            flexWrap: 'wrap',
+          }}
+        >
+          {/* Back button - only when inside a folder */}
+          {currentFolderId && (
+            <motion.button
+              initial={{ opacity: 0, x: -8 }}
+              animate={{ opacity: 1, x: 0 }}
+              onClick={goBack}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '32px',
+                height: '32px',
+                borderRadius: 'var(--radius-md)',
+                background: 'var(--bg-raised)',
+                border: '1px solid var(--border)',
+                color: 'var(--text-secondary)',
+                cursor: 'pointer',
+                transition: 'all var(--transition)',
+                flexShrink: 0,
+                marginRight: '4px',
+              }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLButtonElement).style.background = 'var(--accent-dim)';
+                (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--accent)';
+                (e.currentTarget as HTMLButtonElement).style.color = 'var(--accent)'
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLButtonElement).style.background = 'var(--bg-raised)';
+                (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--border)';
+                (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-secondary)'
+              }}
+            >
+              <ArrowLeft size={16} />
+            </motion.button>
+          )}
+
+          <button
+            onClick={() => navigateToFolder(null)}
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '12px',
-              marginBottom: '20px',
+              gap: '6px',
+              padding: '4px 10px',
+              borderRadius: 'var(--radius-sm)',
+              background: currentFolderId === null ? 'var(--accent-dim)' : 'transparent',
+              border: 'none',
+              color: currentFolderId === null ? 'var(--accent)' : 'var(--text-secondary)',
+              cursor: 'pointer',
+              fontFamily: 'var(--font-body)',
+              fontSize: '13px',
+              fontWeight: 500,
+              transition: 'all var(--transition)',
             }}
           >
-            {/* Search input */}
-            <div style={{ position: 'relative', flex: 1 }}>
-              <span
+            <Home size={14} />
+            Racine
+          </button>
+          {breadcrumb.map((item) => (
+            <React.Fragment key={item.id}>
+              <ChevronRight size={14} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+              <button
+                onClick={() => navigateToFolder(item.id)}
                 style={{
-                  position: 'absolute',
-                  left: '12px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  color: 'var(--text-tertiary)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  pointerEvents: 'none',
-                  zIndex: 1,
-                }}
-              >
-                <Search size={16} />
-              </span>
-              <input
-                type="search"
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value)
-                  setPage(1)
-                }}
-                placeholder="Rechercher un document..."
-                className="input-base"
-                style={{
-                  width: '100%',
-                  padding: '10px 16px 10px 38px',
-                  fontSize: '14px',
-                  fontFamily: 'var(--font-body)',
-                  color: 'var(--text-primary)',
-                  background: 'var(--bg-surface)',
-                  border: '1px solid var(--border)',
-                  borderRadius: 'var(--radius-md)',
-                  outline: 'none',
-                }}
-              />
-            </div>
-
-            {/* Results count */}
-            {!isLoading && total > 0 && (
-              <span
-                style={{
+                  padding: '4px 10px',
+                  borderRadius: 'var(--radius-sm)',
+                  background: item.id === currentFolderId ? 'var(--accent-dim)' : 'transparent',
+                  border: 'none',
+                  color: item.id === currentFolderId ? 'var(--accent)' : 'var(--text-secondary)',
+                  cursor: 'pointer',
                   fontFamily: 'var(--font-body)',
                   fontSize: '13px',
-                  color: 'var(--text-secondary)',
-                  whiteSpace: 'nowrap',
-                  flexShrink: 0,
+                  fontWeight: 500,
+                  transition: 'all var(--transition)',
                 }}
               >
-                {total} résultat{total > 1 ? 's' : ''}
-              </span>
-            )}
+                {item.name}
+              </button>
+            </React.Fragment>
+          ))}
+        </div>
 
-            {/* View toggle */}
-            <div
+        {/* Search + view toggle */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
+          <div style={{ position: 'relative', flex: 1 }}>
+            <span
               style={{
-                display: 'flex',
-                gap: '2px',
-                padding: '2px',
-                background: 'var(--bg-raised)',
-                borderRadius: 'var(--radius-md)',
-                flexShrink: 0,
+                position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)',
+                color: 'var(--text-tertiary)', display: 'flex', pointerEvents: 'none', zIndex: 1,
               }}
             >
-              <button
-                onClick={() => setViewMode('grid')}
-                aria-label="Vue grille"
-                style={{
-                  padding: '6px 10px',
-                  borderRadius: 'var(--radius-sm)',
-                  background: viewMode === 'grid' ? 'var(--bg-surface)' : 'transparent',
-                  border: viewMode === 'grid' ? '1px solid var(--border)' : '1px solid transparent',
-                  boxShadow: viewMode === 'grid' ? 'var(--shadow-sm)' : 'none',
-                  color: viewMode === 'grid' ? 'var(--text-primary)' : 'var(--text-tertiary)',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  transition: 'all var(--transition)',
-                }}
-              >
-                <LayoutGrid size={16} />
-              </button>
-              <button
-                onClick={() => setViewMode('list')}
-                aria-label="Vue liste"
-                style={{
-                  padding: '6px 10px',
-                  borderRadius: 'var(--radius-sm)',
-                  background: viewMode === 'list' ? 'var(--bg-surface)' : 'transparent',
-                  border: viewMode === 'list' ? '1px solid var(--border)' : '1px solid transparent',
-                  boxShadow: viewMode === 'list' ? 'var(--shadow-sm)' : 'none',
-                  color: viewMode === 'list' ? 'var(--text-primary)' : 'var(--text-tertiary)',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  transition: 'all var(--transition)',
-                }}
-              >
-                <List size={16} />
-              </button>
-            </div>
-          </div>
-
-          {/* Document grid/list */}
-          <motion.div
-            style={{ minHeight: '400px' }}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.3 }}
-          >
-            <DocumentGrid
-              documents={documents}
-              isLoading={isLoading}
-              onDelete={isAdmin ? handleDeleteRequest : undefined}
-              viewMode={viewMode}
+              <Search size={16} />
+            </span>
+            <input
+              type="search"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Rechercher dans ce dossier..."
+              className="input-base"
+              style={{
+                width: '100%', padding: '10px 16px 10px 38px', fontSize: '14px',
+                fontFamily: 'var(--font-body)', color: 'var(--text-primary)',
+                background: 'var(--bg-surface)', border: '1px solid var(--border)',
+                borderRadius: 'var(--radius-md)', outline: 'none',
+              }}
             />
-          </motion.div>
-
-          {/* Pagination */}
-          <AnimatePresence>
-            {!isLoading && totalPages > 1 && (
-              <motion.div
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0 }}
+          </div>
+          <div
+            style={{
+              display: 'flex', gap: '2px', padding: '2px',
+              background: 'var(--bg-raised)', borderRadius: 'var(--radius-md)', flexShrink: 0,
+            }}
+          >
+            {(['grid', 'list'] as const).map((mode) => (
+              <button
+                key={mode}
+                onClick={() => setViewMode(mode)}
+                aria-label={mode === 'grid' ? 'Vue grille' : 'Vue liste'}
                 style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '20px 0 0',
-                  borderTop: '1px solid var(--border)',
-                  marginTop: '24px',
+                  padding: '6px 10px', borderRadius: 'var(--radius-sm)',
+                  background: viewMode === mode ? 'var(--bg-surface)' : 'transparent',
+                  border: viewMode === mode ? '1px solid var(--border)' : '1px solid transparent',
+                  boxShadow: viewMode === mode ? 'var(--shadow-sm)' : 'none',
+                  color: viewMode === mode ? 'var(--text-primary)' : 'var(--text-tertiary)',
+                  cursor: 'pointer', display: 'flex', alignItems: 'center',
+                  transition: 'all var(--transition)',
                 }}
               >
-                <span
+                {mode === 'grid' ? <LayoutGrid size={16} /> : <List size={16} />}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* New folder inline form */}
+        <AnimatePresence>
+          {showNewFolder && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              style={{ overflow: 'hidden', marginBottom: '16px' }}
+            >
+              <div
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '12px',
+                  padding: '16px', background: 'var(--bg-surface)',
+                  border: '1px solid var(--accent)', borderRadius: 'var(--radius-lg)',
+                }}
+              >
+                <FolderIcon size={20} style={{ color: newFolderColor || 'var(--accent)', flexShrink: 0 }} />
+                <input
+                  autoFocus
+                  value={newFolderName}
+                  onChange={(e) => setNewFolderName(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') handleCreateFolder(); if (e.key === 'Escape') setShowNewFolder(false) }}
+                  placeholder="Nom du dossier..."
+                  className="input-base"
                   style={{
+                    flex: 1, padding: '8px 12px', fontSize: '14px',
                     fontFamily: 'var(--font-body)',
-                    fontSize: '13px',
-                    color: 'var(--text-secondary)',
                   }}
-                >
-                  {pageStart}–{pageEnd} sur {total} résultats
-                </span>
+                />
+                <div style={{ display: 'flex', gap: '4px' }}>
+                  {FOLDER_COLORS.slice(0, 6).map((c) => (
+                    <button
+                      key={c}
+                      onClick={() => setNewFolderColor(c)}
+                      style={{
+                        width: '20px', height: '20px', borderRadius: '50%',
+                        background: c, border: newFolderColor === c ? '2px solid var(--text-primary)' : '2px solid transparent',
+                        cursor: 'pointer', transition: 'all var(--transition)',
+                      }}
+                    />
+                  ))}
+                </div>
+                <Button variant="primary" size="sm" onClick={handleCreateFolder}>Créer</Button>
+                <Button variant="secondary" size="sm" onClick={() => { setShowNewFolder(false); setNewFolderName('') }}>Annuler</Button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    icon={<ChevronLeft size={15} />}
-                    disabled={page <= 1}
-                    onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  >
-                    Précédent
-                  </Button>
+        {/* Folders grid */}
+        {!isLoading && folders.length > 0 && (
+          <>
+            <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '10px' }}>
+              Dossiers
+            </div>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: viewMode === 'grid' ? 'repeat(auto-fill, minmax(220px, 1fr))' : '1fr',
+                gap: viewMode === 'grid' ? '12px' : '2px',
+                marginBottom: '28px',
+              }}
+            >
+              {folders.map((folder, i) => {
+                const color = getFolderColor(folder.color, i)
+                const itemCount = folder._count.children + folder._count.documents
 
-                  <div
+                return (
+                  <motion.div
+                    key={folder.id}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.03 }}
+                    onClick={() => {
+                      if (renamingFolder !== folder.id) navigateToFolder(folder.id)
+                    }}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '4px',
+                      gap: '12px',
+                      padding: viewMode === 'grid' ? '16px' : '10px 16px',
+                      background: 'var(--bg-surface)',
+                      border: '1px solid var(--border)',
+                      borderRadius: 'var(--radius-md)',
+                      cursor: 'pointer',
+                      transition: 'all var(--transition)',
+                      position: 'relative',
+                    }}
+                    onMouseEnter={(e) => {
+                      (e.currentTarget as HTMLDivElement).style.borderColor = color
+                      ;(e.currentTarget as HTMLDivElement).style.boxShadow = `0 4px 16px ${color}20`
+                    }}
+                    onMouseLeave={(e) => {
+                      (e.currentTarget as HTMLDivElement).style.borderColor = 'var(--border)'
+                      ;(e.currentTarget as HTMLDivElement).style.boxShadow = 'none'
                     }}
                   >
-                    {Array.from({ length: Math.min(totalPages, 7) }).map((_, i) => {
-                      let pageNum: number
-                      if (totalPages <= 7) {
-                        pageNum = i + 1
-                      } else if (page <= 4) {
-                        pageNum = i + 1
-                      } else if (page >= totalPages - 3) {
-                        pageNum = totalPages - 6 + i
-                      } else {
-                        pageNum = page - 3 + i
-                      }
+                    <div
+                      style={{
+                        width: viewMode === 'grid' ? '40px' : '32px',
+                        height: viewMode === 'grid' ? '40px' : '32px',
+                        borderRadius: 'var(--radius-md)',
+                        background: `${color}18`,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: color,
+                        flexShrink: 0,
+                      }}
+                    >
+                      <FolderOpen size={viewMode === 'grid' ? 22 : 18} />
+                    </div>
 
-                      const isActive = pageNum === page
-                      return (
-                        <motion.button
-                          key={pageNum}
-                          onClick={() => setPage(pageNum)}
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      {renamingFolder === folder.id ? (
+                        <input
+                          autoFocus
+                          value={renameValue}
+                          onChange={(e) => setRenameValue(e.target.value)}
+                          onKeyDown={(e) => {
+                            e.stopPropagation()
+                            if (e.key === 'Enter') handleRenameFolder(folder.id)
+                            if (e.key === 'Escape') setRenamingFolder(null)
+                          }}
+                          onClick={(e) => e.stopPropagation()}
+                          className="input-base"
+                          style={{ width: '100%', padding: '4px 8px', fontSize: '13px', fontFamily: 'var(--font-body)' }}
+                        />
+                      ) : (
+                        <>
+                          <div style={{
+                            fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)',
+                            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                          }}>
+                            {folder.name}
+                          </div>
+                          <div style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>
+                            {itemCount} élément{itemCount !== 1 ? 's' : ''}
+                          </div>
+                        </>
+                      )}
+                    </div>
+
+                    {/* Context menu button */}
+                    {isAdmin && (
+                      <div style={{ position: 'relative', flexShrink: 0 }}>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setContextFolder(contextFolder === folder.id ? null : folder.id)
+                          }}
                           style={{
-                            width: '32px',
-                            height: '32px',
-                            borderRadius: 'var(--radius-sm)',
-                            background: isActive ? 'var(--accent-dim)' : 'transparent',
-                            border: isActive ? '1px solid rgba(0, 201, 167, 0.25)' : '1px solid transparent',
-                            color: isActive ? 'var(--accent)' : 'var(--text-secondary)',
-                            fontFamily: 'var(--font-body)',
-                            fontSize: '13px',
-                            fontWeight: isActive ? 600 : 400,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            width: '28px', height: '28px', borderRadius: 'var(--radius-sm)',
+                            background: 'transparent', border: 'none', color: 'var(--text-tertiary)',
                             cursor: 'pointer',
-                            transition: 'all var(--transition)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
                           }}
                         >
-                          {pageNum}
-                        </motion.button>
-                      )
-                    })}
-                  </div>
+                          <MoreVertical size={16} />
+                        </button>
 
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    disabled={page >= totalPages}
-                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                  >
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>Suivant <ChevronRight size={15} /></span>
-                  </Button>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
+                        <AnimatePresence>
+                          {contextFolder === folder.id && (
+                            <motion.div
+                              initial={{ opacity: 0, scale: 0.95 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              exit={{ opacity: 0, scale: 0.95 }}
+                              onClick={(e) => e.stopPropagation()}
+                              style={{
+                                position: 'absolute', right: 0, top: '100%', marginTop: '4px',
+                                background: 'var(--bg-surface)', border: '1px solid var(--border)',
+                                borderRadius: 'var(--radius-md)', boxShadow: 'var(--shadow-md)',
+                                padding: '4px', zIndex: 20, minWidth: '140px',
+                              }}
+                            >
+                              <button
+                                onClick={() => {
+                                  setRenamingFolder(folder.id)
+                                  setRenameValue(folder.name)
+                                  setContextFolder(null)
+                                }}
+                                style={{
+                                  display: 'flex', alignItems: 'center', gap: '8px', width: '100%',
+                                  padding: '8px 12px', borderRadius: 'var(--radius-sm)',
+                                  background: 'transparent', border: 'none', color: 'var(--text-primary)',
+                                  fontSize: '13px', cursor: 'pointer', fontFamily: 'var(--font-body)',
+                                }}
+                              >
+                                <Pencil size={14} /> Renommer
+                              </button>
+                              <button
+                                onClick={() => {
+                                  handleDeleteRequest(folder.id, 'folder')
+                                  setContextFolder(null)
+                                }}
+                                style={{
+                                  display: 'flex', alignItems: 'center', gap: '8px', width: '100%',
+                                  padding: '8px 12px', borderRadius: 'var(--radius-sm)',
+                                  background: 'transparent', border: 'none', color: 'var(--red)',
+                                  fontSize: '13px', cursor: 'pointer', fontFamily: 'var(--font-body)',
+                                }}
+                              >
+                                <Trash2 size={14} /> Supprimer
+                              </button>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                    )}
+                  </motion.div>
+                )
+              })}
+            </div>
+          </>
+        )}
 
-        {/* Right: Filter panel */}
-        <FilterPanel
-          categories={categories}
-          selectedCategories={selectedCategories}
-          selectedTypes={selectedTypes}
-          sortBy={sortBy}
-          sortOrder={sortOrder}
-          onCategoryChange={handleCategoryChange}
-          onTypeChange={handleTypeChange}
-          onSortChange={handleSortChange}
-          onReset={handleReset}
-          documentCounts={documentCounts}
+        {/* Documents section */}
+        {!isLoading && documents.length > 0 && (
+          <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '10px' }}>
+            Documents
+          </div>
+        )}
+
+        <DocumentGrid
+          documents={documents}
+          isLoading={isLoading}
+          onDelete={isAdmin ? (id: string) => handleDeleteRequest(id, 'document') : undefined}
+          viewMode={viewMode}
         />
+
+        {/* Empty state for empty folder */}
+        {!isLoading && folders.length === 0 && documents.length === 0 && !searchQuery && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            style={{
+              display: 'flex', flexDirection: 'column', alignItems: 'center',
+              justifyContent: 'center', padding: '80px 24px', gap: '16px', textAlign: 'center',
+            }}
+          >
+            <div
+              style={{
+                width: '72px', height: '72px', borderRadius: 'var(--radius-xl)',
+                background: 'var(--accent-dim)', display: 'flex',
+                alignItems: 'center', justifyContent: 'center', color: 'var(--accent)',
+              }}
+            >
+              <FolderOpen size={32} />
+            </div>
+            <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '18px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
+              Dossier vide
+            </h3>
+            <p style={{ fontFamily: 'var(--font-body)', fontSize: '14px', color: 'var(--text-secondary)', margin: 0, maxWidth: '360px', lineHeight: 1.6 }}>
+              {currentFolderId
+                ? 'Ce dossier ne contient aucun élément. Ajoutez des sous-dossiers ou des documents.'
+                : 'Aucun dossier ni document. Commencez par créer un dossier.'}
+            </p>
+            {isAdmin && (
+              <Button variant="primary" icon={<FolderPlus size={15} />} onClick={() => setShowNewFolder(true)}>
+                Créer un dossier
+              </Button>
+            )}
+          </motion.div>
+        )}
       </div>
 
       {/* Delete confirmation overlay */}
@@ -465,115 +640,59 @@ export default function DocumentsPage() {
         {deleteId && (
           <>
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => !isDeleting && setDeleteId(null)}
-              style={{
-                position: 'fixed',
-                inset: 0,
-                background: 'rgba(0,0,0,0.6)',
-                backdropFilter: 'blur(4px)',
-                zIndex: 50,
-              }}
+              style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 50 }}
             />
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              transition={{ duration: 0.2 }}
               style={{
-                position: 'fixed',
-                top: '50%',
-                left: 'calc(50% + 120px)',
+                position: 'fixed', top: '50%', left: '50%',
                 transform: 'translate(-50%, -50%)',
-                background: 'var(--bg-surface)',
-                border: '1px solid var(--border)',
-                borderRadius: 'var(--radius-xl)',
-                padding: '28px',
-                width: '100%',
-                maxWidth: '420px',
-                zIndex: 51,
-                boxShadow: 'var(--shadow-lg)',
+                background: 'var(--bg-surface)', border: '1px solid var(--border)',
+                borderRadius: 'var(--radius-xl)', padding: '28px',
+                width: '100%', maxWidth: '420px', zIndex: 51, boxShadow: 'var(--shadow-lg)',
               }}
             >
               <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start', marginBottom: '20px' }}>
-                <div
-                  style={{
-                    width: '40px',
-                    height: '40px',
-                    borderRadius: 'var(--radius-md)',
-                    background: 'var(--red-dim)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: 'var(--red)',
-                    flexShrink: 0,
-                  }}
-                >
+                <div style={{
+                  width: '40px', height: '40px', borderRadius: 'var(--radius-md)',
+                  background: 'var(--red-dim)', display: 'flex',
+                  alignItems: 'center', justifyContent: 'center', color: 'var(--red)', flexShrink: 0,
+                }}>
                   <Trash2 size={18} />
                 </div>
                 <div>
-                  <h3
-                    style={{
-                      fontFamily: 'var(--font-display)',
-                      fontSize: '16px',
-                      fontWeight: 700,
-                      color: 'var(--text-primary)',
-                      margin: '0 0 6px',
-                    }}
-                  >
-                    Supprimer le document
+                  <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 6px' }}>
+                    Supprimer {deletingType === 'folder' ? 'le dossier' : 'le document'}
                   </h3>
-                  <p
-                    style={{
-                      fontFamily: 'var(--font-body)',
-                      fontSize: '13px',
-                      color: 'var(--text-secondary)',
-                      margin: 0,
-                      lineHeight: 1.55,
-                    }}
-                  >
-                    Cette action est irréversible. Le document et son fichier seront définitivement supprimés.
+                  <p style={{ fontFamily: 'var(--font-body)', fontSize: '13px', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.55 }}>
+                    {deletingType === 'folder'
+                      ? 'Le dossier et tout son contenu (sous-dossiers, documents) seront définitivement supprimés.'
+                      : 'Le document et son fichier seront définitivement supprimés.'}
                   </p>
                 </div>
               </div>
 
               {deleteError && (
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    padding: '10px 14px',
-                    borderRadius: 'var(--radius-md)',
-                    background: 'var(--red-dim)',
-                    border: '1px solid rgba(239, 68, 68, 0.2)',
-                    color: 'var(--red)',
-                    fontSize: '13px',
-                    marginBottom: '16px',
-                  }}
-                >
-                  <AlertCircle size={15} />
-                  {deleteError}
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: '8px',
+                  padding: '10px 14px', borderRadius: 'var(--radius-md)',
+                  background: 'var(--red-dim)', border: '1px solid rgba(239, 68, 68, 0.2)',
+                  color: 'var(--red)', fontSize: '13px', marginBottom: '16px',
+                }}>
+                  <AlertCircle size={15} /> {deleteError}
                 </div>
               )}
 
               <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
-                <Button
-                  variant="secondary"
-                  onClick={() => { setDeleteId(null); setDeleteError('') }}
-                  disabled={isDeleting}
-                >
+                <Button variant="secondary" onClick={() => { setDeleteId(null); setDeleteError('') }} disabled={isDeleting}>
                   Annuler
                 </Button>
-                <Button
-                  variant="danger"
-                  onClick={handleDeleteConfirm}
-                  loading={isDeleting}
-                  icon={!isDeleting ? <Trash2 size={14} /> : undefined}
-                >
-                  {isDeleting ? 'Suppression...' : 'Supprimer définitivement'}
+                <Button variant="danger" onClick={handleDeleteConfirm} loading={isDeleting} icon={!isDeleting ? <Trash2 size={14} /> : undefined}>
+                  {isDeleting ? 'Suppression...' : 'Supprimer'}
                 </Button>
               </div>
             </motion.div>

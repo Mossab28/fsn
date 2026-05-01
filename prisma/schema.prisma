@@ -38,6 +38,21 @@ model ActivityLog {
   @@index([createdAt])
 }
 
+model Folder {
+  id        String   @id @default(cuid())
+  name      String
+  color     String?
+  parentId  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  parent   Folder?  @relation("FolderTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children Folder[] @relation("FolderTree")
+  documents Document[]
+
+  @@index([parentId])
+}
+
 model Document {
   id          String    @id @default(cuid())
   title       String
@@ -48,6 +63,7 @@ model Document {
   fileSize    Int
   mimeType    String
   categoryId  String?
+  folderId    String?
   tags        String    @default("[]")
   authorName  String?
   publishedAt DateTime?
@@ -57,9 +73,11 @@ model Document {
 
   uploader User      @relation(fields: [uploadedBy], references: [id])
   category Category? @relation(fields: [categoryId], references: [id])
+  folder   Folder?   @relation(fields: [folderId], references: [id])
 
   @@index([categoryId])
   @@index([uploadedBy])
+  @@index([folderId])
 }
 
 model Category {

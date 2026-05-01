@@ -1,0 +1,502 @@
+\documentclass[a4paper,12pt,french]{article}
+
+% ─── Packages ────────────────────────────────────────────────────────────────
+\usepackage{fontspec}
+\usepackage{polyglossia}
+\setdefaultlanguage{french}
+\usepackage{geometry}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{tabularx}
+\usepackage{booktabs}
+\usepackage{xcolor}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{tocloft}
+\usepackage{parskip}
+\usepackage{array}
+\usepackage{amssymb}
+\usepackage{longtable}
+
+% ─── Couleurs ────────────────────────────────────────────────────────────────
+\definecolor{accentgreen}{HTML}{00A88E}
+\definecolor{darkbg}{HTML}{0D1520}
+\definecolor{maintext}{HTML}{3F3F46}
+\definecolor{lightgray}{HTML}{F4F4F5}
+
+% ─── Mise en page ────────────────────────────────────────────────────────────
+\geometry{
+  top=2.5cm,
+  bottom=2.5cm,
+  left=2.5cm,
+  right=2.5cm,
+}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=accentgreen,
+  urlcolor=accentgreen,
+  citecolor=accentgreen,
+  pdfauthor={Moss'Ab Mirande-Ney},
+  pdftitle={Descriptif de la Stack Technique — Plateforme FSN},
+}
+
+% ─── En-têtes / Pieds de page ────────────────────────────────────────────────
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\footnotesize\textcolor{maintext}{Plateforme de Gestion Documentaire}}
+\fancyhead[R]{\footnotesize\textcolor{maintext}{Descriptif de la Stack Technique}}
+\fancyfoot[C]{\footnotesize\textcolor{maintext}{\thepage}}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0pt}
+
+% ─── Titres ──────────────────────────────────────────────────────────────────
+\titleformat{\section}
+  {\Large\bfseries\color{darkbg}}
+  {\thesection.}{0.5em}{}
+  [\vspace{-0.5em}\textcolor{accentgreen}{\rule{\textwidth}{1pt}}]
+
+\titleformat{\subsection}
+  {\large\bfseries\color{darkbg}}
+  {\thesubsection.}{0.5em}{}
+
+\titleformat{\subsubsection}
+  {\normalsize\bfseries\color{maintext}}
+  {\thesubsubsection.}{0.5em}{}
+
+% ═════════════════════════════════════════════════════════════════════════════
+\begin{document}
+
+% ─── Page de garde ───────────────────────────────────────────────────────────
+\begin{titlepage}
+\begin{center}
+
+\vspace*{2cm}
+
+{\LARGE\bfseries\textcolor{darkbg}{Descriptif de la Stack Technique}}
+
+\vspace{0.5cm}
+
+{\Large\textcolor{accentgreen}{\rule{4cm}{2pt}}}
+
+\vspace{1cm}
+
+{\Large\textcolor{maintext}{Plateforme de Gestion Documentaire}}
+
+{\Large\textcolor{maintext}{Filière Santé Numérique (FSN)}}
+
+\vspace{2cm}
+
+\begin{tabular}{ll}
+\textbf{Version}        & 1.0 \\
+\textbf{Date}           & 15 avril 2026 \\
+\textbf{Statut}         & Document de référence \\
+\textbf{Classification} & Interne \\
+\end{tabular}
+
+\vspace{2cm}
+
+{\small\textcolor{maintext}{
+Ce document décrit l'architecture technique et les choix technologiques\\
+retenus pour la plateforme de gestion documentaire de la FSN.\\[0.5em]
+Il fait suite au compte rendu de visioconférence du 15 avril 2026\\
+avec Michaël Harbouche (Agile Solutions).
+}}
+
+\vfill
+
+{\footnotesize\textcolor{maintext}{\copyright\ 2026 — Tous droits réservés}}
+
+\end{center}
+\end{titlepage}
+
+% ─── Historique des versions ─────────────────────────────────────────────────
+\newpage
+\section*{Historique des versions}
+\addcontentsline{toc}{section}{Historique des versions}
+
+\begin{tabularx}{\textwidth}{c c c X}
+\toprule
+\textbf{Version} & \textbf{Date} & \textbf{Auteur} & \textbf{Description} \\
+\midrule
+1.0 & 15/04/2026 & Moss'Ab Mirande-Ney & Rédaction initiale suite à la visioconférence avec M. Harbouche \\
+\bottomrule
+\end{tabularx}
+
+% ─── Table des matières ──────────────────────────────────────────────────────
+\newpage
+\tableofcontents
+\newpage
+
+% ═════════════════════════════════════════════════════════════════════════════
+% PARTIE 1 : PRÉSENTATION GÉNÉRALE
+% ═════════════════════════════════════════════════════════════════════════════
+
+\section{Présentation générale}
+
+\subsection{Contexte}
+
+Ce document a été rédigé à la suite de la visioconférence du 15 avril 2026 entre l'équipe de développement de la Junior Conseil UTT et Michaël Harbouche (Agile Solutions), architecte consultant du projet.
+
+Il a pour objectif de fournir une description précise et complète de la stack technique retenue pour le développement de la plateforme de gestion documentaire de la Filière Santé Numérique (FSN).
+
+\subsection{Périmètre du document}
+
+Ce descriptif couvre :
+
+\begin{itemize}
+  \item Le framework applicatif et les technologies front-end et back-end
+  \item Le système de gestion de base de données
+  \item Le système d'authentification et de sécurité
+  \item L'infrastructure d'hébergement et le système d'exploitation
+  \item Les outils de développement et la chaîne de build
+  \item Les perspectives d'évolution (phase 2 — IA)
+\end{itemize}
+
+% ═════════════════════════════════════════════════════════════════════════════
+% PARTIE 2 : FRAMEWORK APPLICATIF
+% ═════════════════════════════════════════════════════════════════════════════
+
+\section{Framework applicatif}
+
+\subsection{Next.js — Framework principal}
+
+L'application repose sur \textbf{Next.js 16.2.1}, un framework React full-stack permettant de gérer à la fois le rendu côté serveur (SSR), les routes API, et le rendu côté client au sein d'un seul et même projet.
+
+\begin{tabularx}{\textwidth}{l X}
+\toprule
+\textbf{Composant} & \textbf{Version} \\
+\midrule
+Next.js & 16.2.1 \\
+React & 19.2.4 \\
+React DOM & 19.2.4 \\
+TypeScript & 5.9.3 \\
+\bottomrule
+\end{tabularx}
+
+\vspace{0.5em}
+
+\textbf{Choix justifiés :}
+\begin{itemize}
+  \item Architecture \textit{App Router} pour un routage moderne et des Server Components performants
+  \item Routes API intégrées (\texttt{/api/*}) évitant la nécessité d'un back-end distinct
+  \item TypeScript en mode strict pour la robustesse et la maintenabilité du code
+  \item Limite de taille des Server Actions portée à \textbf{52 Mo} pour supporter les uploads de documents volumineux
+\end{itemize}
+
+\subsection{React et interface utilisateur}
+
+L'interface est construite sur \textbf{React 19.2.4} avec les bibliothèques suivantes :
+
+\begin{tabularx}{\textwidth}{l l X}
+\toprule
+\textbf{Bibliothèque} & \textbf{Version} & \textbf{Rôle} \\
+\midrule
+Radix UI (11 composants) & divers & Composants accessibles (dialog, select, tabs…) \\
+Framer Motion & 12.38.0 & Animations d'interface \\
+Lucide React & 1.7.0 & Icônes \\
+Sonner & 2.0.7 & Notifications \textit{toast} \\
+react-dropzone & 15.0.0 & Zone de dépôt pour l'upload de fichiers \\
+\bottomrule
+\end{tabularx}
+
+\subsection{Styles}
+
+\begin{tabularx}{\textwidth}{l l X}
+\toprule
+\textbf{Outil} & \textbf{Version} & \textbf{Rôle} \\
+\midrule
+Tailwind CSS & 4.2.2 & Framework CSS utilitaire (nouvelle API v4) \\
+@tailwindcss/postcss & 4.2.2 & Plugin PostCSS pour Tailwind v4 \\
+class-variance-authority & 0.7.1 & Gestion des variantes de composants \\
+clsx & 2.1.1 & Composition conditionnelle de classes \\
+tailwind-merge & 3.5.0 & Fusion intelligente de classes Tailwind \\
+\bottomrule
+\end{tabularx}
+
+% ═════════════════════════════════════════════════════════════════════════════
+% PARTIE 3 : BASE DE DONNÉES
+% ═════════════════════════════════════════════════════════════════════════════
+
+\section{Base de données}
+
+\subsection{ORM — Prisma}
+
+L'accès aux données est géré via \textbf{Prisma 7.5.0}, un ORM (Object-Relational Mapper) TypeScript offrant une couche d'abstraction sur la base de données avec typage fort, migrations automatisées et interface d'administration.
+
+\subsection{Base de données SQLite}
+
+Conformément aux préconisations issues de la visioconférence, la base de données retenue est \textbf{SQLite}.
+
+\begin{tabularx}{\textwidth}{l l X}
+\toprule
+\textbf{Composant} & \textbf{Version} & \textbf{Rôle} \\
+\midrule
+Prisma & 7.5.0 & ORM et gestion des migrations \\
+@prisma/adapter-better-sqlite3 & 7.5.0 & Adaptateur SQLite pour Prisma \\
+better-sqlite3 & 12.8.0 & Driver SQLite natif Node.js \\
+\bottomrule
+\end{tabularx}
+
+\vspace{0.5em}
+
+\textbf{Justification du choix SQLite :}
+\begin{itemize}
+  \item Aucun serveur de base de données séparé à administrer
+  \item Fichier unique sur le disque, sauvegarde triviale
+  \item Performances suffisantes pour le volume de données et le nombre d'utilisateurs attendus
+  \item Parfaitement adapté à un hébergement VPS mono-instance
+\end{itemize}
+
+\subsection{Modèle de données}
+
+La base de données contient les entités suivantes :
+
+\begin{tabularx}{\textwidth}{l X}
+\toprule
+\textbf{Entité} & \textbf{Description} \\
+\midrule
+User & Utilisateurs de la plateforme avec rôles (admin / utilisateur) \\
+Document & Métadonnées des fichiers (titre, type MIME, taille, chemin, auteur…) \\
+Folder & Arborescence de dossiers (structure hiérarchique récursive) \\
+Category & Catégories de classement des documents \\
+ActivityLog & Journal des actions utilisateurs (upload, téléchargement, connexion…) \\
+\bottomrule
+\end{tabularx}
+
+% ═════════════════════════════════════════════════════════════════════════════
+% PARTIE 4 : AUTHENTIFICATION ET SÉCURITÉ
+% ═════════════════════════════════════════════════════════════════════════════
+
+\section{Authentification et sécurité}
+
+\subsection{NextAuth.js}
+
+Le système d'authentification est basé sur \textbf{NextAuth.js 4.24.13}, une bibliothèque d'authentification éprouvée pour les applications Next.js.
+
+\begin{tabularx}{\textwidth}{l l X}
+\toprule
+\textbf{Composant} & \textbf{Version} & \textbf{Rôle} \\
+\midrule
+next-auth & 4.24.13 & Gestion des sessions et de l'authentification \\
+@auth/prisma-adapter & 2.11.1 & Intégration NextAuth avec Prisma/SQLite \\
+bcryptjs & 3.0.3 & Hachage sécurisé des mots de passe \\
+\bottomrule
+\end{tabularx}
+
+\subsection{Mécanismes de sécurité}
+
+\begin{itemize}
+  \item \textbf{Stratégie JWT} : les sessions utilisateurs sont gérées par des tokens JWT avec expiration configurable, sans stockage en base de données
+  \item \textbf{Hachage des mots de passe} : bcryptjs applique un hachage bcrypt (coût adaptatif) avant toute persistance en base
+  \item \textbf{Contrôle d'accès par rôles} : les routes d'administration (\texttt{/api/admin/*}, upload, suppression) vérifient le rôle de l'utilisateur connecté
+  \item \textbf{Validation des fichiers} : type MIME, taille maximale (50 Mo) et chemin d'accès validés avant tout enregistrement
+  \item \textbf{Protection contre la traversée de répertoires} : les chemins de fichiers sont systématiquement vérifiés
+  \item \textbf{Middleware de protection} : toutes les routes sont protégées au niveau du middleware Next.js
+\end{itemize}
+
+% ═════════════════════════════════════════════════════════════════════════════
+% PARTIE 5 : STOCKAGE DES FICHIERS
+% ═════════════════════════════════════════════════════════════════════════════
+
+\section{Stockage des fichiers}
+
+\subsection{Principe de stockage}
+
+Les fichiers uploadés sont stockés directement sur le \textbf{système de fichiers du serveur}, dans un répertoire dédié (\texttt{./uploads/}). Cette approche est rendue possible par le choix d'un hébergement VPS (voir section~\ref{sec:infra}), où le stockage est persistant.
+
+\begin{tabularx}{\textwidth}{l X}
+\toprule
+\textbf{Paramètre} & \textbf{Valeur} \\
+\midrule
+Répertoire de stockage & \texttt{./uploads/} (configurable via \texttt{UPLOAD\_DIR}) \\
+Taille maximale par fichier & 50 Mo \\
+Nommage des fichiers & UUID + extension originale (ex. : \texttt{a3f2c1...pdf}) \\
+\bottomrule
+\end{tabularx}
+
+\subsection{Types de fichiers acceptés}
+
+\begin{itemize}
+  \item Documents bureautiques : PDF, Word (.doc, .docx), Excel (.xls, .xlsx), PowerPoint (.ppt, .pptx)
+  \item Images : JPEG, PNG, GIF, WebP, SVG, TIFF
+  \item Fichiers texte : texte brut, CSV, HTML, Markdown
+\end{itemize}
+
+% ═════════════════════════════════════════════════════════════════════════════
+% PARTIE 6 : INFRASTRUCTURE ET HÉBERGEMENT
+% ═════════════════════════════════════════════════════════════════════════════
+
+\section{Infrastructure et hébergement}
+\label{sec:infra}
+
+\subsection{Système d'exploitation — Debian 11}
+
+Conformément aux recommandations issues de la visioconférence, le système d'exploitation retenu est \textbf{Debian 11 « Bullseye »} (GNU/Linux).
+
+\begin{tabularx}{\textwidth}{l X}
+\toprule
+\textbf{Critère} & \textbf{Justification} \\
+\midrule
+Stabilité & Debian est reconnue pour ses cycles de release longs et sa grande stabilité en environnement serveur \\
+Sobriété & Distribution légère, sans logiciels superflus, adaptée aux serveurs \\
+Souveraineté & Hébergement sur infrastructure française (cf. choix OVH) \\
+Coût & Distribution libre et gratuite \\
+Maîtrise & Environnement familier pour l'équipe de développement \\
+\bottomrule
+\end{tabularx}
+
+\subsection{Hébergeur — OVH (VPS)}
+
+L'hébergement retenu est un \textbf{VPS (Virtual Private Server) chez OVH}, hébergeur français.
+
+\textbf{Avantages du VPS OVH :}
+\begin{itemize}
+  \item \textbf{Souveraineté des données} : infrastructure localisée en France, soumise au droit français et européen (RGPD)
+  \item \textbf{Coût maîtrisé} : offres à partir de quelques euros par mois, prévisibles et sans facturation à l'usage
+  \item \textbf{Stockage persistant} : contrairement aux hébergements \textit{serverless}, le stockage local des fichiers est garanti
+  \item \textbf{Contrôle total} : accès SSH, configuration système libre, pas de restriction de plateforme
+  \item \textbf{Environnement familier} : OVH est un acteur bien connu et documenté dans l'écosystème francophone
+\end{itemize}
+
+\subsection{Architecture serveur}
+
+La stack logicielle déployée sur le VPS est la suivante :
+
+\begin{tabularx}{\textwidth}{l l X}
+\toprule
+\textbf{Composant} & \textbf{Version recommandée} & \textbf{Rôle} \\
+\midrule
+Debian & 11 (Bullseye) & Système d'exploitation \\
+Node.js & 20 LTS & Runtime JavaScript (serveur) \\
+PM2 & dernière stable & Gestionnaire de processus (redémarrage automatique) \\
+Nginx & dernière stable & Reverse proxy, terminaison SSL \\
+Certbot & dernière stable & Certificat SSL/TLS via Let's Encrypt (HTTPS) \\
+\bottomrule
+\end{tabularx}
+
+\subsection{Spécifications serveur recommandées}
+
+\begin{tabularx}{\textwidth}{l X}
+\toprule
+\textbf{Ressource} & \textbf{Recommandation} \\
+\midrule
+RAM & 4 Go minimum \\
+CPU & 2 vCPU \\
+Stockage & 40 Go SSD (extensible selon le volume documentaire) \\
+Bande passante & Illimitée ou volume suffisant \\
+\bottomrule
+\end{tabularx}
+
+\subsection{Absence de conteneurisation}
+
+Conformément aux choix du projet, \textbf{aucune conteneurisation Docker} n'est utilisée. Le déploiement est effectué directement sur le système d'exploitation, ce qui simplifie la gestion et réduit la complexité d'exploitation.
+
+% ═════════════════════════════════════════════════════════════════════════════
+% PARTIE 7 : OUTILS DE DÉVELOPPEMENT
+% ═════════════════════════════════════════════════════════════════════════════
+
+\section{Outils de développement}
+
+\subsection{Chaîne de build}
+
+\begin{tabularx}{\textwidth}{l l X}
+\toprule
+\textbf{Outil} & \textbf{Version} & \textbf{Rôle} \\
+\midrule
+TypeScript & 5.9.3 & Typage statique, compilation vers JavaScript \\
+ESLint & 9.39.4 & Analyse statique du code (configuration flat config ESLint 9) \\
+PostCSS & — & Transformation CSS (via plugin Tailwind) \\
+tsx & 4.21.0 & Exécution de scripts TypeScript (ex. : seed de base de données) \\
+Prisma CLI & 7.5.0 & Génération du client, migrations, studio d'administration \\
+\bottomrule
+\end{tabularx}
+
+\subsection{Scripts disponibles}
+
+\begin{tabularx}{\textwidth}{l X}
+\toprule
+\textbf{Commande} & \textbf{Action} \\
+\midrule
+\texttt{npm run dev} & Lancement du serveur de développement \\
+\texttt{npm run build} & Compilation de production \\
+\texttt{npm start} & Démarrage du serveur en production \\
+\texttt{npm run lint} & Analyse statique du code \\
+\texttt{npm run db:migrate} & Application des migrations de base de données \\
+\texttt{npm run db:seed} & Initialisation des données de référence \\
+\texttt{npm run db:studio} & Interface d'administration Prisma \\
+\bottomrule
+\end{tabularx}
+
+\subsection{Variables d'environnement}
+
+\begin{tabularx}{\textwidth}{l X}
+\toprule
+\textbf{Variable} & \textbf{Description} \\
+\midrule
+\texttt{DATABASE\_URL} & Chemin vers la base de données SQLite \\
+\texttt{NEXTAUTH\_SECRET} & Clé secrète pour la signature des tokens JWT \\
+\texttt{NEXTAUTH\_URL} & URL publique de l'application \\
+\texttt{UPLOAD\_DIR} & Répertoire de stockage des fichiers (défaut : \texttt{./uploads}) \\
+\texttt{MAX\_FILE\_SIZE\_MB} & Taille maximale d'upload en Mo (défaut : 50) \\
+\texttt{ANTHROPIC\_API\_KEY} & Clé API pour les fonctionnalités IA (phase 2) \\
+\bottomrule
+\end{tabularx}
+
+% ═════════════════════════════════════════════════════════════════════════════
+% PARTIE 8 : PERSPECTIVES PHASE 2 — IA
+% ═════════════════════════════════════════════════════════════════════════════
+
+\section{Perspectives — Phase 2 : Intelligence Artificielle}
+
+\subsection{Intégration IA existante}
+
+La plateforme intègre d'ores et déjà le SDK \textbf{Anthropic Claude} (\texttt{@anthropic-ai/sdk} v0.80.0) pour des fonctionnalités de recherche sémantique et d'analyse documentaire via l'API Claude.
+
+\subsection{Considérations sur les coûts d'infrastructure IA}
+
+Comme évoqué lors de la visioconférence, le coût d'une infrastructure IA peut rapidement devenir significatif. Deux options sont à étudier :
+
+\begin{tabularx}{\textwidth}{l X X}
+\toprule
+\textbf{Option} & \textbf{Avantages} & \textbf{Inconvénients} \\
+\midrule
+\textbf{API cloud} (Mistral, Claude, Azure OpenAI…) & Pas d'infrastructure à gérer, montée en charge automatique & Coût variable, dépendance à un tiers, données transmises hors du périmètre \\
+\addlinespace
+\textbf{Auto-hébergement} (modèles open source) & Maîtrise des données, coût fixe & Infrastructure GPU requise, coût initial élevé, expertise nécessaire \\
+\bottomrule
+\end{tabularx}
+
+\vspace{0.5em}
+
+\textbf{Recommandation :} une analyse de coût et un chiffrage précis seront réalisés par la Junior Conseil UTT en amont de la phase 2, en fonction des volumes de traitement attendus et des contraintes de confidentialité des données.
+
+% ═════════════════════════════════════════════════════════════════════════════
+% PARTIE 9 : SYNTHÈSE
+% ═════════════════════════════════════════════════════════════════════════════
+
+\section{Synthèse}
+
+\begin{tabularx}{\textwidth}{l l X}
+\toprule
+\textbf{Composant} & \textbf{Technologie / Version} & \textbf{Statut} \\
+\midrule
+Framework web & Next.js 16.2.1 & En production \\
+Front-end & React 19.2.4 + TypeScript 5.9.3 & En production \\
+UI & Radix UI + Tailwind CSS 4.2.2 & En production \\
+Base de données & SQLite via Prisma 7.5.0 & En production \\
+Authentification & NextAuth 4.24.13 + bcryptjs & En production \\
+Stockage fichiers & Système de fichiers local (\texttt{./uploads/}) & En production \\
+IA & Anthropic Claude SDK 0.80.0 & Intégré (phase 2) \\
+OS serveur & Debian 11 « Bullseye » & Retenu \\
+Hébergeur & OVH — VPS & Retenu \\
+Reverse proxy & Nginx + Certbot (HTTPS) & À déployer \\
+Gestionnaire de processus & PM2 & À déployer \\
+Conteneurisation & Aucune (Docker non utilisé) & — \\
+\bottomrule
+\end{tabularx}
+
+\vfill
+{\footnotesize\textcolor{maintext}{\copyright\ 2026 — Tous droits réservés}}
+
+\end{document}

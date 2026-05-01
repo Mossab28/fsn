@@ -1,0 +1,765 @@
+\documentclass[a4paper,12pt,french]{article}
+
+% ─── Packages ────────────────────────────────────────────────────────────────
+\usepackage{fontspec}
+\usepackage{polyglossia}
+\setdefaultlanguage{french}
+\usepackage{geometry}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{tabularx}
+\usepackage{booktabs}
+\usepackage{xcolor}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{tocloft}
+\usepackage{parskip}
+\usepackage{array}
+\usepackage{amssymb}
+
+% ─── Couleurs ────────────────────────────────────────────────────────────────
+\definecolor{accentgreen}{HTML}{00A88E}
+\definecolor{darkbg}{HTML}{0D1520}
+\definecolor{maintext}{HTML}{3F3F46}
+
+% ─── Mise en page ────────────────────────────────────────────────────────────
+\geometry{
+  top=2.5cm,
+  bottom=2.5cm,
+  left=2.5cm,
+  right=2.5cm,
+}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=accentgreen,
+  urlcolor=accentgreen,
+  citecolor=accentgreen,
+  pdfauthor={Moss'Ab Mirande-Ney},
+  pdftitle={Cahier de Spécifications — Plateforme de Gestion Documentaire},
+}
+
+% ─── En-têtes / Pieds de page ────────────────────────────────────────────────
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\footnotesize\textcolor{maintext}{Plateforme de Gestion Documentaire}}
+\fancyhead[R]{\footnotesize\textcolor{maintext}{Cahier de Spécifications}}
+\fancyfoot[C]{\footnotesize\textcolor{maintext}{\thepage}}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0pt}
+
+% ─── Titres ──────────────────────────────────────────────────────────────────
+\titleformat{\section}
+  {\Large\bfseries\color{darkbg}}
+  {\thesection.}{0.5em}{}
+  [\vspace{-0.5em}\textcolor{accentgreen}{\rule{\textwidth}{1pt}}]
+
+\titleformat{\subsection}
+  {\large\bfseries\color{darkbg}}
+  {\thesubsection.}{0.5em}{}
+
+\titleformat{\subsubsection}
+  {\normalsize\bfseries\color{maintext}}
+  {\thesubsubsection.}{0.5em}{}
+
+% ═════════════════════════════════════════════════════════════════════════════
+\begin{document}
+
+% ─── Page de garde ───────────────────────────────────────────────────────────
+\begin{titlepage}
+\begin{center}
+
+\vspace*{2cm}
+
+{\LARGE\bfseries\textcolor{darkbg}{Cahier de Spécifications}}
+
+\vspace{0.5cm}
+
+{\Large\textcolor{accentgreen}{\rule{4cm}{2pt}}}
+
+\vspace{1cm}
+
+{\Large\textcolor{maintext}{Plateforme de Gestion Documentaire}}
+
+{\Large\textcolor{maintext}{et Collaborative}}
+
+\vspace{2cm}
+
+\begin{tabular}{ll}
+\textbf{Version}        & 1.1 \\
+\textbf{Date}           & 5 avril 2026 \\
+\textbf{Statut}         & En cours de validation \\
+\textbf{Classification} & Interne \\
+\end{tabular}
+
+\vspace{2cm}
+
+{\small\textcolor{maintext}{
+Ce document décrit les spécifications fonctionnelles\\
+de la plateforme web de gestion documentaire et collaborative.\\[0.5em]
+Il s'appuie sur les échanges des 13 et 17 mars 2026 avec le client,\\
+complétés par ses retours des 2 et 3 avril 2026.
+}}
+
+\vfill
+
+{\footnotesize\textcolor{maintext}{\copyright\ 2026 — Tous droits réservés}}
+
+\end{center}
+\end{titlepage}
+
+% ─── Historique des versions ─────────────────────────────────────────────────
+\newpage
+\section*{Historique des versions}
+\addcontentsline{toc}{section}{Historique des versions}
+
+\begin{tabularx}{\textwidth}{c c c X}
+\toprule
+\textbf{Version} & \textbf{Date} & \textbf{Auteur} & \textbf{Description} \\
+\midrule
+1.0 & 01/04/2026 & Équipe projet & Rédaction initiale à partir des besoins exprimés par le client \\
+\addlinespace
+1.1 & 05/04/2026 & Équipe projet & Prise en compte des retours de Robert Picard : versioning simplifié, import de structure existante, filtre par dates, lien entre statuts et versions, précisions sur la phase 2 \\
+\bottomrule
+\end{tabularx}
+
+% ─── Table des matières ──────────────────────────────────────────────────────
+\newpage
+\tableofcontents
+\newpage
+
+% ═════════════════════════════════════════════════════════════════════════════
+% PARTIE 1 : PRÉSENTATION GÉNÉRALE
+% ═════════════════════════════════════════════════════════════════════════════
+
+\section{Présentation générale}
+
+\subsection{Contexte du projet}
+
+L'organisation produit et diffuse au quotidien un grand nombre de documents : textes réglementaires, notes stratégiques, supports de formation, documents de référence. Aujourd'hui, une bonne partie de cette gestion repose sur l'outil COSI. Or, COSI montre ses limites dès qu'il s'agit de travailler à plusieurs sur un même document ou d'envisager des évolutions plus poussées.
+
+Face à ce constat, deux pistes ont été étudiées :
+
+\begin{enumerate}[leftmargin=1.5em]
+  \item \textbf{Rester sur COSI} en l'utilisant tel quel, avec les contraintes que cela implique.
+  \item \textbf{Créer une plateforme web sur mesure}, pensée dès le départ pour le stockage, l'organisation, la collaboration et la rédaction de documents, et suffisamment ouverte pour accueillir de nouvelles fonctionnalités par la suite.
+\end{enumerate}
+
+Ce cahier de spécifications porte sur la \textbf{seconde piste}.
+
+\subsection{Objectifs}
+
+\begin{itemize}[leftmargin=1.5em]
+  \item \textbf{Centraliser} tous les documents dans un espace unique, sécurisé et accessible à l'ensemble des collaborateurs.
+  \item \textbf{Organiser} les contenus dans une arborescence de dossiers et sous-dossiers, à la manière de Google Drive, pour que chacun s'y retrouve facilement.
+  \item \textbf{Collaborer} sur les documents (rédaction à plusieurs, commentaires, partage, notifications), dans l'esprit de Google Docs.
+  \item \textbf{Rechercher} efficacement par mots-clés, y compris dans le contenu même des fichiers et dans les transcriptions audio.
+  \item \textbf{Suivre le cycle de vie} de chaque document (brouillon, enrichissement, relecture, diffusion), avec des droits d'accès qui s'adaptent automatiquement.
+  \item \textbf{Transcrire} les fichiers audio et vidéo (MP4) : la plateforme extrait l'audio, le convertit en texte et rend ce texte recherchable.
+  \item \textbf{Sécuriser} les données et respecter le RGPD, tout en supervisant l'environnement d'hébergement.
+  \item \textbf{Archiver} et sauvegarder l'ensemble du référentiel documentaire.
+\end{itemize}
+
+\subsection{Périmètre fonctionnel}
+
+\begin{tabularx}{\textwidth}{l X}
+\toprule
+\textbf{N°} & \textbf{Domaine} \\
+\midrule
+1 & Utilisateurs, groupes et annuaire \\
+2 & Gestion documentaire (dossiers, formats, versioning) \\
+3 & Édition collaborative (type Google Docs) \\
+4 & Recherche par mots-clés et dans le contenu des fichiers \\
+5 & Collaboration (fils de discussion, notifications, partage) \\
+6 & Transcription automatique des fichiers audio/vidéo \\
+7 & Cycle de vie des documents (statuts, droits dynamiques) \\
+8 & Sécurité, conformité RGPD, supervision hébergement \\
+9 & Archivage et sauvegarde \\
+\bottomrule
+\end{tabularx}
+
+\subsection{Hors périmètre (prévu en phase 2)}
+
+Les éléments ci-dessous ne font \textbf{pas partie de cette première version}. L'architecture est néanmoins pensée pour les intégrer plus tard :
+
+\begin{itemize}[leftmargin=1.5em]
+  \item Recherche assistée par IA générative
+  \item Assistant conversationnel IA
+  \item Génération automatique de résumés par IA
+  \item Recherche de références académiques via IA (type Google Scholar + synthèse automatique). \textit{Le client a confirmé ce besoin pour la phase 2, en évoquant notamment NotebookLM pour la synthèse de publications.}
+  \item Synchronisation locale pour travailler hors ligne
+  \item Application mobile (Android, iOS, Windows) avec navigation adaptée au smartphone
+\end{itemize}
+
+% ═════════════════════════════════════════════════════════════════════════════
+% PARTIE 2 : GESTION DES UTILISATEURS
+% ═════════════════════════════════════════════════════════════════════════════
+
+\section{Gestion des utilisateurs}
+
+\subsection{Opérations sur les utilisateurs}
+
+\begin{tabularx}{\textwidth}{l X}
+\toprule
+\textbf{Opération} & \textbf{Détail} \\
+\midrule
+Création & Formulaire avec nom, prénom, e-mail, mot de passe, rôle et groupe(s) \\
+\addlinespace
+Mise à jour & Modification du profil, du rôle ou des groupes \\
+\addlinespace
+Suppression & Avec demande de confirmation ; les documents et l'historique associés sont gérés \\
+\addlinespace
+Consultation & Fiche avec coordonnées, groupes et historique d'activité \\
+\bottomrule
+\end{tabularx}
+
+\subsection{Rôles et permissions}
+
+Trois niveaux de rôles coexistent sur la plateforme :
+
+\begin{tabularx}{\textwidth}{l X}
+\toprule
+\textbf{Rôle} & \textbf{Ce qu'il peut faire} \\
+\midrule
+Administrateur & Tout : gérer les utilisateurs, les groupes, les dossiers, les documents et les catégories. Consulter les logs. Superviser la plateforme. \\
+\addlinespace
+Membre & Consulter, télécharger, rechercher. Participer aux discussions et à l'édition collaborative. Ses droits de lecture/écriture dépendent des dossiers et des statuts de documents. \\
+\addlinespace
+Lecteur & Consulter et télécharger uniquement. Pas d'écriture, pas d'accès aux discussions. \\
+\bottomrule
+\end{tabularx}
+
+\subsection{Groupes d'utilisateurs}
+
+\begin{itemize}[leftmargin=1.5em]
+  \item Un \textbf{groupe} rassemble des utilisateurs qui travaillent sur un même projet ou une même thématique.
+  \item Un utilisateur peut faire partie de \textbf{plusieurs groupes à la fois}.
+  \item Les groupes servent à attribuer les droits d'accès aux dossiers.
+  \item Les administrateurs créent, renomment, peuplent et suppriment les groupes.
+\end{itemize}
+
+\subsection{Annuaire}
+
+\begin{itemize}[leftmargin=1.5em]
+  \item Tous les utilisateurs connectés ont accès à la liste des membres de la plateforme.
+  \item On peut chercher par nom, prénom ou groupe.
+  \item Chaque entrée affiche l'avatar, le nom complet, le rôle, le(s) groupe(s) et la date d'inscription.
+  \item Un clic ouvre la fiche détaillée de l'utilisateur.
+\end{itemize}
+
+\subsection{Administration au quotidien}
+
+L'idée est que l'administration reste \textbf{simple et autonome} : pas besoin de faire appel à un prestataire pour ajouter un utilisateur, modifier des droits ou gérer un groupe. Tout se fait depuis une interface intégrée, accessible sans compétences techniques particulières.
+
+\subsection{Matrice des permissions}
+
+\begin{tabularx}{\textwidth}{X c c c}
+\toprule
+\textbf{Action} & \textbf{Admin} & \textbf{Membre} & \textbf{Lecteur} \\
+\midrule
+Se connecter / se déconnecter & \checkmark & \checkmark & \checkmark \\
+Consulter le tableau de bord & \checkmark & \checkmark & \checkmark \\
+Naviguer dans les dossiers & \checkmark & \checkmark & \checkmark \\
+Consulter l'annuaire & \checkmark & \checkmark & \checkmark \\
+Rechercher un document & \checkmark & \checkmark & \checkmark \\
+Consulter / télécharger un document & \checkmark & \checkmark & \checkmark \\
+\addlinespace
+Participer aux discussions & \checkmark & \checkmark & — \\
+Éditer un document à plusieurs & \checkmark & \checkmark & — \\
+Modifier un document (si autorisé) & \checkmark & \checkmark & — \\
+Téléverser un document & \checkmark & \checkmark & — \\
+\addlinespace
+Créer / supprimer un dossier & \checkmark & — & — \\
+Gérer les droits d'accès & \checkmark & — & — \\
+Gérer les statuts de documents & \checkmark & — & — \\
+Créer / modifier / supprimer un utilisateur & \checkmark & — & — \\
+Gérer les groupes & \checkmark & — & — \\
+Consulter le journal d'activité & \checkmark & — & — \\
+\bottomrule
+\end{tabularx}
+
+% ═════════════════════════════════════════════════════════════════════════════
+% PARTIE 3 : GESTION DOCUMENTAIRE
+% ═════════════════════════════════════════════════════════════════════════════
+
+\section{Gestion documentaire}
+
+\subsection{Arborescence de dossiers (type Google Drive)}
+
+\textcolor{accentgreen}{\textbf{C'est la fonctionnalité centrale de la plateforme.}}
+
+Les documents sont rangés dans des dossiers et sous-dossiers, comme sur Google Drive. C'est le mode principal de navigation : on entre dans un dossier, on voit son contenu, on descend dans les sous-dossiers ou on remonte.
+
+\subsubsection{Navigation}
+
+\begin{itemize}[leftmargin=1.5em]
+  \item La page Documents affiche d'abord les sous-dossiers du dossier courant, puis les documents qu'il contient.
+  \item Un \textbf{fil d'Ariane} en haut de page montre le chemin complet depuis la racine. Chaque segment est cliquable.
+  \item Chaque dossier est représenté par une carte avec son nom, le nombre d'éléments qu'il contient et une couleur personnalisable.
+  \item Deux modes d'affichage sont proposés : grille (cartes) ou liste (tableau). On bascule d'un clic.
+\end{itemize}
+
+\subsubsection{Opérations sur les dossiers (administrateur)}
+
+\begin{tabularx}{\textwidth}{l X}
+\toprule
+\textbf{Opération} & \textbf{Détail} \\
+\midrule
+Créer & Depuis le dossier courant. On indique un nom et éventuellement une couleur. \\
+\addlinespace
+Renommer & Via le menu contextuel du dossier. \\
+\addlinespace
+Déplacer & On choisit un dossier de destination. Impossible de déplacer un dossier dans l'un de ses propres sous-dossiers. \\
+\addlinespace
+Supprimer & Avec confirmation. Si le dossier n'est pas vide, son contenu est aussi supprimé. \\
+\bottomrule
+\end{tabularx}
+
+\subsubsection{Importer une arborescence existante}
+
+\textit{Le client a insisté sur ce point : l'existant contient déjà des dossiers bien structurés en sous-dossiers. Pouvoir récupérer cette organisation d'un seul coup dans la nouvelle plateforme ferait gagner un temps considérable.}
+
+Concrètement :
+
+\begin{itemize}[leftmargin=1.5em]
+  \item L'administrateur peut \textbf{importer toute une arborescence} en une seule opération, via un fichier ZIP.
+  \item La plateforme reconstitue automatiquement la hiérarchie de dossiers telle qu'elle existe dans le ZIP.
+  \item Les fichiers importés passent par les mêmes contrôles que les téléversements classiques (format autorisé, taille max).
+  \item Les documents importés reçoivent le statut \textbf{brouillon} par défaut.
+  \item À la fin de l'import, un rapport récapitule ce qui a été créé (dossiers, fichiers) et ce qui a été rejeté.
+\end{itemize}
+
+\subsubsection{Droits d'accès par dossier}
+
+\begin{itemize}[leftmargin=1.5em]
+  \item Chaque dossier a ses propres droits de lecture et d'écriture.
+  \item Ces droits sont attribués par utilisateur ou par groupe.
+  \item Par défaut, un sous-dossier hérite des droits de son parent. On peut néanmoins les redéfinir au cas par cas.
+  \item Trois niveaux :
+    \begin{itemize}
+      \item \textbf{Aucun accès} : le dossier n'apparaît tout simplement pas.
+      \item \textbf{Lecture seule} : consultation et téléchargement, c'est tout.
+      \item \textbf{Lecture/écriture} : consultation, téléchargement, ajout, modification et suppression de documents.
+    \end{itemize}
+  \item Les droits se configurent depuis le menu contextuel du dossier.
+\end{itemize}
+
+\subsection{Formats de fichiers acceptés}
+
+\begin{tabularx}{\textwidth}{l l}
+\toprule
+\textbf{Type} & \textbf{Extensions} \\
+\midrule
+PDF & .pdf \\
+Word & .doc, .docx \\
+Excel & .xls, .xlsx \\
+PowerPoint & .ppt, .pptx \\
+Texte & .txt \\
+Audio / Vidéo & .mp4 \\
+Images & .jpg, .png, .gif, .webp, .svg \\
+\bottomrule
+\end{tabularx}
+
+\vspace{0.5em}
+Taille maximale par fichier : \textbf{50 Mo} (cette limite est configurable).
+
+\subsection{Fichiers audio et vidéo (MP4)}
+
+Les MP4 bénéficient d'un traitement particulier :
+
+\begin{enumerate}[leftmargin=1.5em]
+  \item L'utilisateur dépose un fichier MP4 sur la plateforme.
+  \item Le fichier est conservé tel quel et reste téléchargeable.
+  \item La plateforme en extrait la piste audio.
+  \item L'audio est automatiquement transcrit en texte.
+  \item Cette transcription est rattachée au document et devient recherchable via le moteur de recherche.
+\end{enumerate}
+
+\textbf{À noter :} c'est la transcription textuelle qui est indexée, pas le flux audio ou vidéo en tant que tel. Le fichier MP4 d'origine est toujours disponible au téléchargement.
+
+\subsection{Téléverser un document}
+
+Le téléversement passe par une fenêtre dédiée :
+
+\begin{enumerate}[leftmargin=1.5em]
+  \item \textbf{Zone de dépôt} : on glisse-dépose un fichier ou on clique pour le sélectionner. Un aperçu apparaît (nom, taille, type), et le format ainsi que la taille sont vérifiés à la volée.
+  \item \textbf{Informations à renseigner} :
+    \begin{itemize}
+      \item Titre (pré-rempli à partir du nom de fichier) — obligatoire
+      \item Description — facultatif
+      \item Catégorie — facultatif
+      \item Auteur — facultatif
+      \item Tags (mots-clés libres) — facultatif
+      \item Statut initial (brouillon par défaut)
+    \end{itemize}
+  \item \textbf{Barre de progression} pendant l'envoi.
+  \item Le document est rangé dans le dossier courant.
+\end{enumerate}
+
+\subsection{Page de détail d'un document}
+
+Chaque document a sa propre page, organisée ainsi :
+
+\begin{tabularx}{\textwidth}{l X}
+\toprule
+\textbf{Section} & \textbf{Contenu} \\
+\midrule
+Aperçu & PDF affiché directement, image visible, vidéo/audio avec lecteur intégré. Pour les autres formats : icône + bouton de téléchargement. \\
+\addlinespace
+Informations & Titre, description, catégorie, auteur, date de publication, taille, format, tags, statut, date de mise en ligne. \\
+\addlinespace
+Historique & Tableau des versions (date, auteur, numéro). On peut consulter ou restaurer une ancienne version. \\
+\addlinespace
+Transcription & Pour les MP4 : le texte issu de la transcription automatique. \\
+\addlinespace
+Discussion & Espace de commentaires lié au document. \\
+\addlinespace
+Actions & Télécharger, modifier les infos (si on a les droits), changer le statut (admin), supprimer (admin). \\
+\bottomrule
+\end{tabularx}
+
+\subsection{Versioning}
+
+Le versioning conserve l'historique complet des modifications d'un document.
+
+\textit{Le client a demandé un mécanisme très simple : en un ou deux clics, on incrémente le numéro de version — par exemple, de 1.2 à 1.3, ou de 1 à 2.}
+
+\begin{itemize}[leftmargin=1.5em]
+  \item Chaque nouveau fichier téléversé crée une entrée dans l'historique.
+  \item \textbf{Incrémentation en un clic} :
+    \begin{itemize}
+      \item Version \textbf{mineure} (1.2 → 1.3) pour les corrections et ajustements.
+      \item Version \textbf{majeure} (1.3 → 2.0) pour les révisions de fond.
+    \end{itemize}
+  \item Ce qui est conservé pour chaque version :
+    \begin{itemize}
+      \item Numéro de version (majeure.mineure)
+      \item Date et auteur de la modification
+      \item Fichier associé
+      \item Commentaire de modification (facultatif)
+    \end{itemize}
+  \item Un tableau récapitulatif liste toutes les versions du document.
+  \item On peut consulter et télécharger n'importe quelle version antérieure.
+  \item Un administrateur peut restaurer une ancienne version comme version courante.
+\end{itemize}
+
+\subsection{Cycle de vie des documents}
+
+Chaque document a un \textbf{statut} qui reflète où il en est dans son élaboration. Les droits d'accès s'adaptent automatiquement en fonction de ce statut.
+
+\textit{Le client souhaite que la gestion des statuts soit articulée de façon simple et intuitive avec le versioning (voir ci-dessous).}
+
+\begin{tabularx}{\textwidth}{l X}
+\toprule
+\textbf{Statut} & \textbf{Description} \\
+\midrule
+Brouillon & Seuls l'auteur et les administrateurs le voient. L'auteur peut le modifier librement. \\
+\addlinespace
+En enrichissement & Le groupe de travail concerné y a accès. Ses membres peuvent annoter et contribuer. \\
+\addlinespace
+En relecture & Visible par les relecteurs désignés. Les modifications se limitent aux corrections. \\
+\addlinespace
+Diffusion & Tous les utilisateurs ayant accès au dossier peuvent le consulter. Lecture seule (sauf admin). \\
+\addlinespace
+Archivé & Retiré de la navigation courante mais toujours accessible par la recherche. \\
+\bottomrule
+\end{tabularx}
+
+\vspace{0.5em}
+Seuls les administrateurs et l'auteur du document peuvent changer son statut. Chaque changement est consigné dans l'historique.
+
+\subsubsection{Lien entre statut et version}
+
+Dans la pratique, statut et version vont souvent de pair. Quand un document passe un cap important (par exemple d'« enrichissement » à « relecture », ou de « relecture » à « diffusion »), il est naturel que son numéro de version évolue aussi. Pour ne pas compliquer les choses :
+
+\begin{itemize}[leftmargin=1.5em]
+  \item Lors d'un changement de statut, la plateforme propose d'incrémenter la version.
+  \item L'utilisateur choisit s'il veut une version mineure ou majeure (ou aucune incrémentation).
+  \item Le changement de statut et la nouvelle version apparaissent ensemble dans l'historique.
+  \item Sur la page du document, le statut et la version sont affichés côte à côte pour une lecture claire.
+\end{itemize}
+
+% ═════════════════════════════════════════════════════════════════════════════
+% PARTIE 4 : RECHERCHE
+% ═════════════════════════════════════════════════════════════════════════════
+
+\section{Recherche et accès à l'information}
+
+\subsection{Recherche par mots-clés}
+
+\begin{itemize}[leftmargin=1.5em]
+  \item Une barre de recherche est accessible depuis n'importe quelle page.
+  \item Elle cherche dans les métadonnées du document : titre, description, tags, nom de l'auteur.
+  \item Les résultats apparaissent au fil de la frappe.
+\end{itemize}
+
+\subsection{Recherche dans le contenu des fichiers}
+
+La recherche ne s'arrête pas aux métadonnées. Elle fouille aussi \textbf{à l'intérieur des fichiers} (PDF, Word, Excel, PowerPoint, TXT). Pour les MP4, c'est la transcription textuelle qui est interrogée.
+
+\begin{itemize}[leftmargin=1.5em]
+  \item Les résultats montrent un extrait du passage correspondant.
+  \item L'indexation du contenu se fait en arrière-plan au moment du téléversement.
+\end{itemize}
+
+\subsection{Filtres et tri}
+
+Un panneau de filtres permet d'affiner les résultats :
+
+\begin{itemize}[leftmargin=1.5em]
+  \item \textbf{Catégorie} (sélection multiple)
+  \item \textbf{Type de fichier} (PDF, Word, Excel, MP4\ldots)
+  \item \textbf{Dossier} (restreindre à un dossier et ses sous-dossiers)
+  \item \textbf{Statut} (par stade du cycle de vie)
+  \item \textbf{Auteur}
+  \item \textbf{Période} (date de début / date de fin). \textit{Le client a souligné l'utilité de ce filtre pour réduire le nombre de résultats quand on ne sait pas exactement ce qu'on cherche.}
+  \item \textbf{Tri} : par date d'ajout, titre, taille ou pertinence
+  \item Un bouton permet de réinitialiser tous les filtres d'un coup.
+\end{itemize}
+
+\subsection{Recherche dans l'annuaire}
+
+\begin{itemize}[leftmargin=1.5em]
+  \item Recherche par nom, prénom ou groupe.
+  \item Les résultats affichent le nom complet, le rôle et le(s) groupe(s).
+\end{itemize}
+
+% ═════════════════════════════════════════════════════════════════════════════
+% PARTIE 5 : COLLABORATION
+% ═════════════════════════════════════════════════════════════════════════════
+
+\section{Collaboration}
+
+Le client l'a dit clairement : la plateforme ne doit pas se limiter au stockage et à la gestion de documents. Elle doit aussi permettre de les \textbf{élaborer ensemble}.
+
+\subsection{Édition collaborative}
+
+\textcolor{accentgreen}{\textbf{C'est l'autre fonctionnalité clé de la plateforme.}}
+
+Plusieurs utilisateurs peuvent travailler en même temps sur un même document, comme sur Google Docs :
+
+\begin{itemize}[leftmargin=1.5em]
+  \item Édition simultanée par plusieurs personnes.
+  \item Sauvegarde automatique en continu, sans que l'utilisateur n'ait rien à faire.
+  \item Chaque contribution est tracée (qui a modifié quoi, et quand). On peut revenir à un état antérieur si besoin.
+  \item Si deux personnes modifient le même passage au même moment, les changements sont fusionnés automatiquement sans perte de données.
+\end{itemize}
+
+\subsection{Fils de discussion}
+
+\begin{itemize}[leftmargin=1.5em]
+  \item \textbf{Par document} : chaque document a son espace de commentaires, pour discuter de son contenu, poser des questions ou laisser des remarques.
+  \item \textbf{Par dossier} : chaque dossier a aussi un fil de discussion, utile pour coordonner le travail sur un ensemble de documents.
+  \item Dans les deux cas :
+    \begin{itemize}
+      \item On peut ajouter un commentaire (horodaté, avec le nom de l'auteur).
+      \item On peut répondre à un commentaire existant (discussion en fil).
+      \item On peut mentionner quelqu'un avec @nom : il reçoit une notification.
+      \item On peut modifier ou supprimer ses propres commentaires.
+    \end{itemize}
+\end{itemize}
+
+\subsection{Partage}
+
+\begin{itemize}[leftmargin=1.5em]
+  \item Un utilisateur peut partager un document ou un dossier en envoyant une invitation par e-mail.
+  \item L'invitation précise le niveau d'accès accordé (consultation, modification, enrichissement).
+  \item Le destinataire reçoit un lien qui l'amène directement au contenu partagé.
+\end{itemize}
+
+% ═════════════════════════════════════════════════════════════════════════════
+% PARTIE 6 : SÉCURITÉ & CONFORMITÉ
+% ═════════════════════════════════════════════════════════════════════════════
+
+\section{Sécurité et conformité}
+
+\subsection{Authentification}
+
+\begin{itemize}[leftmargin=1.5em]
+  \item Connexion par e-mail et mot de passe.
+  \item Mot de passe d'au moins 8 caractères, stocké de façon chiffrée.
+  \item Déconnexion explicite, avec retour sur la page de connexion.
+  \item Toutes les pages sont protégées : il faut être connecté pour y accéder.
+\end{itemize}
+
+\subsection{Conformité RGPD}
+
+La plateforme est susceptible de contenir des données personnelles (entretiens, coordonnées\ldots). Le respect du RGPD est donc indispensable :
+
+\begin{itemize}[leftmargin=1.5em]
+  \item Chiffrement des données sensibles, en stockage comme en transmission.
+  \item Droit d'accès, de rectification et de suppression des données personnelles.
+  \item Journalisation des accès aux données sensibles.
+  \item Politique de conservation et de purge des données.
+  \item Mentions légales et politique de confidentialité accessibles depuis la plateforme.
+\end{itemize}
+
+\subsection{Supervision de l'hébergement}
+
+\begin{itemize}[leftmargin=1.5em]
+  \item L'environnement d'hébergement est supervisé pour garder la main sur le niveau de protection des données.
+  \item Surveillance de la disponibilité, des performances et des erreurs.
+  \item Alertes automatiques en cas de problème (indisponibilité, tentative d'intrusion, espace disque insuffisant).
+  \item Journalisation des accès au serveur.
+  \item Mises à jour de sécurité régulières.
+\end{itemize}
+
+\subsection{Protection des fichiers}
+
+\begin{itemize}[leftmargin=1.5em]
+  \item Seuls les formats autorisés peuvent être déposés (liste blanche).
+  \item Taille maximale par fichier : 50 Mo.
+  \item Les fichiers sont renommés sur le serveur pour éviter les doublons et les failles de sécurité.
+  \item Aucun mot de passe ni secret n'est jamais stocké dans le code source.
+\end{itemize}
+
+% ═════════════════════════════════════════════════════════════════════════════
+% PARTIE 7 : ARCHIVAGE ET SAUVEGARDE
+% ═════════════════════════════════════════════════════════════════════════════
+
+\section{Archivage et sauvegarde}
+
+\subsection{Archivage}
+
+\begin{itemize}[leftmargin=1.5em]
+  \item Un document archivé disparaît de la navigation courante mais reste trouvable via la recherche ou l'administration.
+  \item Tout est conservé : le fichier, ses métadonnées, l'historique des versions, les discussions, les transcriptions.
+\end{itemize}
+
+\subsection{Sauvegarde}
+
+\begin{itemize}[leftmargin=1.5em]
+  \item Sauvegarde régulière et complète :
+    \begin{itemize}
+      \item Base de données (utilisateurs, documents, métadonnées, historique)
+      \item Fichiers stockés sur le serveur
+      \item Configuration de la plateforme
+    \end{itemize}
+  \item Rythme : une sauvegarde incrémentale par jour, une sauvegarde complète par semaine.
+  \item Les sauvegardes sont stockées sur un support distinct du serveur principal.
+  \item La procédure de restauration est documentée et testée.
+\end{itemize}
+
+% ═════════════════════════════════════════════════════════════════════════════
+% PARTIE 8 : INTERFACE UTILISATEUR
+% ═════════════════════════════════════════════════════════════════════════════
+
+\section{Interface utilisateur}
+
+\subsection{Tableau de bord}
+
+C'est la première page qui s'affiche après connexion :
+
+\begin{itemize}[leftmargin=1.5em]
+  \item Un message d'accueil personnalisé (Bonjour/Bonsoir + prénom).
+  \item Des indicateurs clés : nombre de documents, de catégories, de membres, volume de stockage utilisé.
+  \item Les 5 derniers documents ajoutés ou modifiés.
+  \item Un graphique montrant la répartition des documents par catégorie.
+  \item Le fil des dernières actions sur la plateforme.
+\end{itemize}
+
+\subsection{Navigation}
+
+\begin{itemize}[leftmargin=1.5em]
+  \item Une barre latérale fixe avec les rubriques principales :
+    \begin{itemize}
+      \item Tableau de bord
+      \item Documents (l'arborescence de dossiers)
+      \item Recherche
+      \item Annuaire
+      \item Administration (visible uniquement par les administrateurs)
+    \end{itemize}
+  \item En bas de la barre latérale : l'avatar de l'utilisateur, son nom, son rôle, et un bouton de déconnexion.
+  \item Un bouton pour basculer entre mode clair et mode sombre. Le choix est mémorisé.
+\end{itemize}
+
+\subsection{Principes d'interface}
+
+\begin{itemize}[leftmargin=1.5em]
+  \item Interface sobre, moderne et facile à prendre en main.
+  \item Animations fluides pour les transitions.
+  \item Conçue avant tout pour un usage sur ordinateur de bureau.
+  \item Grilles adaptatives pour l'affichage des documents et des dossiers.
+\end{itemize}
+
+% ═════════════════════════════════════════════════════════════════════════════
+% PARTIE 9 : JOURNAL D'ACTIVITÉ
+% ═════════════════════════════════════════════════════════════════════════════
+
+\section{Journal d'activité}
+
+Le journal est accessible depuis l'administration (réservé aux administrateurs). Il consigne toutes les actions effectuées sur la plateforme :
+
+\begin{itemize}[leftmargin=1.5em]
+  \item Chaque entrée indique : qui a fait quoi, sur quel élément, et quand.
+\end{itemize}
+
+\begin{tabularx}{\textwidth}{l X}
+\toprule
+\textbf{Action} & \textbf{Détail} \\
+\midrule
+Connexion & Un utilisateur s'est connecté \\
+Téléversement & Un document a été ajouté \\
+Modification & Les informations d'un document ont été modifiées \\
+Suppression & Un document a été supprimé \\
+Déplacement & Un document a changé de dossier \\
+Changement de statut & Le statut d'un document a évolué \\
+Nouvelle version & Une nouvelle version a été déposée \\
+Création de dossier & Un dossier a été créé \\
+Suppression de dossier & Un dossier a été supprimé \\
+Gestion utilisateur & Un compte a été créé, modifié ou supprimé \\
+Gestion de groupe & Un groupe a été créé ou modifié \\
+Modification des droits & Les droits d'un dossier ont changé \\
+Commentaire & Un commentaire a été publié \\
+\bottomrule
+\end{tabularx}
+
+% ═════════════════════════════════════════════════════════════════════════════
+% PARTIE 10 : EXIGENCES GÉNÉRALES
+% ═════════════════════════════════════════════════════════════════════════════
+
+\section{Exigences générales}
+
+\subsection{Performance}
+
+\begin{itemize}[leftmargin=1.5em]
+  \item Les pages doivent se charger en moins de 3 secondes.
+  \item La recherche dans le contenu des documents doit répondre en moins de 2 secondes.
+  \item La plateforme doit pouvoir gérer plusieurs milliers de documents sans dégradation.
+\end{itemize}
+
+\subsection{Disponibilité}
+
+\begin{itemize}[leftmargin=1.5em]
+  \item Objectif de disponibilité : 99\,\% en heures ouvrées.
+  \item Redémarrage automatique en cas de plantage.
+  \item Surveillance et alertes automatiques.
+\end{itemize}
+
+\subsection{Évolutivité}
+
+\begin{itemize}[leftmargin=1.5em]
+  \item L'architecture est pensée pour évoluer : nouvelles fonctionnalités, montée en volume, intégration d'IA en phase 2.
+  \item Le stockage des fichiers pourra être migré vers le cloud si le volume l'exige.
+\end{itemize}
+
+% ═════════════════════════════════════════════════════════════════════════════
+% PARTIE 11 : GLOSSAIRE
+% ═════════════════════════════════════════════════════════════════════════════
+
+\section{Glossaire}
+
+\begin{tabularx}{\textwidth}{l X}
+\toprule
+\textbf{Terme} & \textbf{Définition} \\
+\midrule
+Fil d'Ariane & Barre de navigation qui montre le chemin depuis la racine jusqu'au dossier courant \\
+Répertoire & Dossier servant à organiser les documents \\
+RGPD & Règlement Général sur la Protection des Données (réglementation européenne) \\
+Tag & Mot-clé libre qu'on associe à un document pour faciliter la recherche \\
+Transcription & Conversion automatique d'un contenu audio en texte \\
+Versioning & Fait de conserver l'historique de toutes les versions d'un document \\
+\bottomrule
+\end{tabularx}
+
+\end{document}
