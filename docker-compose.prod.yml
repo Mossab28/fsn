@@ -1,0 +1,21 @@
+services:
+  fsn:
+    build: .
+    container_name: fsn-platform
+    restart: unless-stopped
+    ports:
+      - "4000:3000"
+    environment:
+      - NODE_ENV=production
+      - NEXTAUTH_SECRET=fsn-prod-secret-2026-change-me
+      - NEXTAUTH_URL=http://212.227.88.180:4000
+      - UPLOAD_DIR=/app/uploads
+    volumes:
+      - fsn-uploads:/app/uploads
+      - fsn-db:/app/prisma
+    labels:
+      - "traefik.enable=false"
+
+volumes:
+  fsn-uploads:
+  fsn-db:

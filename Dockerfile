@@ -30,18 +30,23 @@ COPY --from=builder /app/prisma ./prisma
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=builder /app/src/generated ./src/generated
 COPY --from=builder /app/package.json ./package.json
+COPY --from=builder /app/scripts ./scripts
 
 # Next.js build output
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/public ./public
 
-# Uploads directory (will be mounted as volume)
+# Uploads + DB directories (mounted as volumes)
 RUN mkdir -p /app/uploads && chown nextjs:nodejs /app/uploads
 RUN mkdir -p /app/prisma && chown nextjs:nodejs /app/prisma
+
+# Entrypoint: migrate DB then start
+COPY --from=builder /app/docker-entrypoint.sh ./docker-entrypoint.sh
+RUN chmod +x ./docker-entrypoint.sh
 
 USER nextjs
 
 EXPOSE 3000
 
-CMD ["node", "server.js"]
+ENTRYPOINT ["./docker-entrypoint.sh"]
