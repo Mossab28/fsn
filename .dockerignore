@@ -1,0 +1,10 @@
+node_modules
+.next
+.git
+uploads
+backups
+docs/*.aux
+docs/*.log
+docs/*.out
+docs/*.toc
+*.md
