@@ -7,18 +7,37 @@ datasource db {
   provider = "sqlite"
 }
 
+// ─── Utilisateurs ───────────────────────────────────────────────────────────
+
 model User {
   id        String   @id @default(cuid())
   email     String   @unique
   password  String
   name      String
-  role      String   @default("MEMBER")
+  role      String   @default("MEMBER") // ADMIN | MEMBER | READER
+  groupId   String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  group        UserGroup?        @relation(fields: [groupId], references: [id])
   documents    Document[]
   activityLogs ActivityLog[]
+  versions     DocumentVersion[]
+  contributions WikiContribution[]
 }
+
+model UserGroup {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  color       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users User[]
+}
+
+// ─── Journalisation ─────────────────────────────────────────────────────────
 
 model ActivityLog {
   id         String   @id @default(cuid())
@@ -38,6 +57,8 @@ model ActivityLog {
   @@index([createdAt])
 }
 
+// ─── Dossiers ───────────────────────────────────────────────────────────────
+
 model Folder {
   id        String   @id @default(cuid())
   name      String
@@ -52,6 +73,8 @@ model Folder {
 
   @@index([parentId])
 }
+
+// ─── Documents ──────────────────────────────────────────────────────────────
 
 model Document {
   id          String    @id @default(cuid())
@@ -68,17 +91,73 @@ model Document {
   authorName  String?
   publishedAt DateTime?
   uploadedBy  String
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
 
-  uploader User      @relation(fields: [uploadedBy], references: [id])
-  category Category? @relation(fields: [categoryId], references: [id])
-  folder   Folder?   @relation(fields: [folderId], references: [id])
+  // Versioning & cycle de vie
+  status         String @default("BROUILLON") // BROUILLON | ENRICHISSEMENT | RELECTURE | DIFFUSION | ARCHIVE
+  currentVersion String @default("1.0")
+  isArchived     Boolean @default(false)
+
+  // Indexation du contenu (texte extrait du fichier / transcription)
+  textContent    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  uploader      User              @relation(fields: [uploadedBy], references: [id])
+  category      Category?         @relation(fields: [categoryId], references: [id])
+  folder        Folder?           @relation(fields: [folderId], references: [id])
+  versions      DocumentVersion[]
+  contributions WikiContribution[]
 
   @@index([categoryId])
   @@index([uploadedBy])
   @@index([folderId])
+  @@index([status])
+  @@index([isArchived])
 }
+
+// ─── Versioning ─────────────────────────────────────────────────────────────
+
+model DocumentVersion {
+  id         String   @id @default(cuid())
+  documentId String
+  version    String   // "1.0", "1.1", "2.0"
+  type       String   // MAJOR | MINOR
+  filename   String
+  storedName String
+  filePath   String
+  fileSize   Int
+  changelog  String?  // description du changement
+  uploadedBy String
+  createdAt  DateTime @default(now())
+
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  uploader User     @relation(fields: [uploadedBy], references: [id])
+
+  @@index([documentId])
+  @@index([createdAt])
+}
+
+// ─── Collaboration Wiki ─────────────────────────────────────────────────────
+
+model WikiContribution {
+  id         String   @id @default(cuid())
+  documentId String
+  userId     String
+  content    String   // contenu de la contribution (Markdown)
+  type       String   @default("NOTE") // NOTE | COMMENTAIRE | ANNOTATION
+  isApproved Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id])
+
+  @@index([documentId])
+  @@index([userId])
+}
+
+// ─── Catégories ─────────────────────────────────────────────────────────────
 
 model Category {
   id          String   @id @default(cuid())

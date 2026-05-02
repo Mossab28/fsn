@@ -10,16 +10,19 @@ import {
   RotateCcw,
   ChevronDown,
 } from 'lucide-react'
-import type { Category } from '@/types'
+import type { Category, DocumentStatus } from '@/types'
+import { DOCUMENT_STATUS_LABELS, DOCUMENT_STATUS_COLORS } from '@/types'
 
 interface FilterPanelProps {
   categories: Category[]
   selectedCategories: string[]
   selectedTypes: string[]
+  selectedStatuses?: DocumentStatus[]
   sortBy: string
   sortOrder: string
   onCategoryChange: (ids: string[]) => void
   onTypeChange: (types: string[]) => void
+  onStatusChange?: (statuses: DocumentStatus[]) => void
   onSortChange: (sortBy: string, sortOrder: string) => void
   onReset: () => void
   documentCounts?: Record<string, number>
@@ -283,23 +286,28 @@ function SectionTitle({ children, collapsed, onToggle }: { children: string; col
   )
 }
 
+const ALL_STATUSES: DocumentStatus[] = ['BROUILLON', 'ENRICHISSEMENT', 'RELECTURE', 'DIFFUSION', 'ARCHIVE']
+
 export function FilterPanel({
   categories,
   selectedCategories,
   selectedTypes,
+  selectedStatuses = [],
   sortBy,
   sortOrder,
   onCategoryChange,
   onTypeChange,
+  onStatusChange,
   onSortChange,
   onReset,
   documentCounts,
 }: FilterPanelProps) {
   const [categoriesCollapsed, setCategoriesCollapsed] = useState(false)
   const [typesCollapsed, setTypesCollapsed] = useState(false)
+  const [statusCollapsed, setStatusCollapsed] = useState(false)
   const [sortCollapsed, setSortCollapsed] = useState(false)
 
-  const hasActiveFilters = selectedCategories.length > 0 || selectedTypes.length > 0
+  const hasActiveFilters = selectedCategories.length > 0 || selectedTypes.length > 0 || selectedStatuses.length > 0
 
   const toggleCategory = (id: string) => {
     if (selectedCategories.includes(id)) {
@@ -314,6 +322,15 @@ export function FilterPanel({
       onTypeChange(selectedTypes.filter((t) => t !== value))
     } else {
       onTypeChange([...selectedTypes, value])
+    }
+  }
+
+  const toggleStatus = (status: DocumentStatus) => {
+    if (!onStatusChange) return
+    if (selectedStatuses.includes(status)) {
+      onStatusChange(selectedStatuses.filter((s) => s !== status))
+    } else {
+      onStatusChange([...selectedStatuses, status])
     }
   }
 
@@ -378,7 +395,7 @@ export function FilterPanel({
               padding: '0 5px',
             }}
           >
-            {selectedCategories.length + selectedTypes.length}
+            {selectedCategories.length + selectedTypes.length + selectedStatuses.length}
           </span>
         )}
       </div>
@@ -463,6 +480,43 @@ export function FilterPanel({
       </div>
 
       <div style={dividerStyle} />
+
+      {/* Status */}
+      {onStatusChange && (
+        <>
+          <div style={sectionStyle}>
+            <SectionTitle
+              collapsed={statusCollapsed}
+              onToggle={() => setStatusCollapsed(!statusCollapsed)}
+            >
+              Statut
+            </SectionTitle>
+            <AnimatePresence initial={false}>
+              {!statusCollapsed && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  style={{ overflow: 'hidden' }}
+                >
+                  {ALL_STATUSES.map((s) => (
+                    <Checkbox
+                      key={s}
+                      checked={selectedStatuses.includes(s)}
+                      onChange={() => toggleStatus(s)}
+                      label={DOCUMENT_STATUS_LABELS[s]}
+                      color={DOCUMENT_STATUS_COLORS[s]}
+                    />
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          <div style={dividerStyle} />
+        </>
+      )}
 
       {/* Sort */}
       <div style={sectionStyle}>

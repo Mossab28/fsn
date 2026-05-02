@@ -26,6 +26,17 @@ const ALLOWED_MIME_TYPES = new Set([
   'text/csv',
   'text/html',
   'text/markdown',
+  // Audio/Video
+  'video/mp4',
+  'audio/mpeg',
+  'audio/wav',
+  'audio/webm',
+  'video/webm',
+  'audio/ogg',
+  'audio/mp4',
+  'audio/flac',
+  'audio/aac',
+  'audio/x-m4a',
 ])
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024 // 50MB

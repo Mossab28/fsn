@@ -4,6 +4,8 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { saveFile } from '@/lib/file-upload'
 import { logActivity, getIpFromRequest } from '@/lib/activity-logger'
+import { extractTextContent } from '@/lib/text-extractor'
+import { isTranscribable, transcribeAudioVideo } from '@/lib/transcription'
 // SQLite mode — no Prisma enum/array types needed
 
 type SortableField = 'createdAt' | 'title' | 'fileSize' | 'publishedAt'
@@ -95,7 +97,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
-  if (session.user.role !== 'ADMIN') {
+  if (session.user.role === 'READER') {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
@@ -148,6 +150,16 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     const { storedName, filePath, fileSize } = await saveFile(file)
 
+    // Extraction du contenu textuel pour indexation
+    let textContent: string | null = null
+    if (isTranscribable(file.type, filePath)) {
+      // Transcription audio/vidéo (asynchrone, fire-and-forget si échec)
+      textContent = await transcribeAudioVideo(filePath, file.type)
+    } else {
+      // Extraction texte PDF/DOCX/TXT
+      textContent = await extractTextContent(filePath, file.type)
+    }
+
     const document = await prisma.document.create({
       data: {
         title: title.trim(),
@@ -175,6 +187,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             : null,
         publishedAt: publishedAt ?? null,
         uploadedBy: session.user.id,
+        textContent,
       },
       include: {
         uploader: { select: { id: true, name: true, email: true } },

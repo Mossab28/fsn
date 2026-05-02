@@ -17,6 +17,10 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const mimeType = searchParams.get('mimeType') ?? undefined
     const dateFrom = searchParams.get('dateFrom') ?? undefined
     const dateTo = searchParams.get('dateTo') ?? undefined
+    const status = searchParams.get('status') ?? undefined
+    const folderId = searchParams.get('folderId') ?? undefined
+    const authorName = searchParams.get('authorName') ?? undefined
+    const includeArchived = searchParams.get('includeArchived') === 'true'
     const page = Math.max(1, parseInt(searchParams.get('page') ?? '1', 10))
     const pageSize = Math.min(
       100,
@@ -35,9 +39,21 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       if (!isNaN(d.getTime())) dateToParsed = d
     }
 
+    // Parse multiple statuses (comma-separated)
+    const statusList = status ? status.split(',').filter(Boolean) : undefined
+
     const where = {
+      // Exclude archived by default unless explicitly requested
+      ...(includeArchived ? {} : { isArchived: false }),
       ...(categoryId ? { categoryId } : {}),
       ...(mimeType ? { mimeType } : {}),
+      ...(folderId ? { folderId } : {}),
+      ...(statusList && statusList.length > 0
+        ? statusList.length === 1
+          ? { status: statusList[0] }
+          : { status: { in: statusList } }
+        : {}),
+      ...(authorName ? { authorName: { contains: authorName } } : {}),
       ...(dateFromParsed || dateToParsed
         ? {
             createdAt: {
@@ -53,6 +69,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
               { description: { contains: q } },
               { authorName: { contains: q } },
               { tags: { contains: q } },
+              { textContent: { contains: q } },
               {
                 category: {
                   name: { contains: q },
@@ -76,14 +93,34 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       prisma.document.count({ where }),
     ])
 
-    // Relevance ordering: title matches first
+    // Improved relevance scoring when a query is provided
     const sorted = q
       ? allResults.sort((a, b) => {
-          const aInTitle = a.title.toLowerCase().includes(q.toLowerCase())
-          const bInTitle = b.title.toLowerCase().includes(q.toLowerCase())
-          if (aInTitle && !bInTitle) return -1
-          if (!aInTitle && bInTitle) return 1
-          return 0
+          const ql = q.toLowerCase()
+          const scoreDoc = (doc: typeof a): number => {
+            let score = 0
+            const titleLower = doc.title.toLowerCase()
+            // Exact title match (highest)
+            if (titleLower === ql) score += 100
+            // Title starts with query
+            else if (titleLower.startsWith(ql)) score += 80
+            // Title contains query
+            else if (titleLower.includes(ql)) score += 60
+            // Description match
+            if (doc.description?.toLowerCase().includes(ql)) score += 30
+            // Author match
+            if (doc.authorName?.toLowerCase().includes(ql)) score += 25
+            // Tags match
+            if (doc.tags?.toLowerCase().includes(ql)) score += 20
+            // Contenu du fichier (indexation)
+            if ((doc as Record<string, unknown>).textContent && String((doc as Record<string, unknown>).textContent).toLowerCase().includes(ql)) score += 15
+            // Boost active documents over archived
+            if (!doc.isArchived) score += 5
+            // Boost diffusion status (published)
+            if (doc.status === 'DIFFUSION') score += 3
+            return score
+          }
+          return scoreDoc(b) - scoreDoc(a)
         })
       : allResults
 

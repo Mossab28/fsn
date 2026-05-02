@@ -17,11 +17,13 @@ import {
   MoreVertical,
   Pencil,
   FolderOpen,
+  Archive,
 } from 'lucide-react'
 import { useSession } from 'next-auth/react'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Button } from '@/components/ui/Button'
 import { DocumentGrid } from '@/components/documents/DocumentGrid'
+import { ImportZipModal } from '@/components/documents/ImportZipModal'
 import type { DocumentWithRelations } from '@/types'
 
 type ViewMode = 'grid' | 'list'
@@ -69,6 +71,9 @@ export default function DocumentsPage() {
   const [contextFolder, setContextFolder] = useState<string | null>(null)
   const [renamingFolder, setRenamingFolder] = useState<string | null>(null)
   const [renameValue, setRenameValue] = useState('')
+
+  // ZIP import
+  const [showZipImport, setShowZipImport] = useState(false)
 
   // Delete confirm
   const [deleteId, setDeleteId] = useState<string | null>(null)
@@ -204,6 +209,13 @@ export default function DocumentsPage() {
         action={
           isAdmin ? (
             <div style={{ display: 'flex', gap: '8px' }}>
+              <Button
+                variant="secondary"
+                icon={<Archive size={15} />}
+                onClick={() => setShowZipImport(true)}
+              >
+                Importer ZIP
+              </Button>
               <Button
                 variant="secondary"
                 icon={<FolderPlus size={15} />}
@@ -699,6 +711,14 @@ export default function DocumentsPage() {
           </>
         )}
       </AnimatePresence>
+
+      {/* ZIP Import modal */}
+      <ImportZipModal
+        open={showZipImport}
+        onOpenChange={setShowZipImport}
+        currentFolderId={currentFolderId}
+        onSuccess={fetchContent}
+      />
     </>
   )
 }

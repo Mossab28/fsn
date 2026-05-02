@@ -28,6 +28,7 @@ import {
   FileX,
   FilePenLine,
   FolderPlus,
+  UsersRound,
 } from 'lucide-react'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Button } from '@/components/ui/Button'
@@ -36,11 +37,15 @@ import { Badge } from '@/components/ui/Badge'
 import { Spinner } from '@/components/ui/Spinner'
 import { Avatar } from '@/components/ui/Avatar'
 import { formatBytes, formatDate } from '@/lib/utils'
-import type { DocumentWithRelations, Category } from '@/types'
+import type { DocumentWithRelations, Category, UserGroup } from '@/types'
 import type { SafeUser } from '@/types'
 
 interface CategoryWithCount extends Category {
   documentCount: number
+}
+
+interface UserGroupWithCount extends UserGroup {
+  _count: { users: number }
 }
 
 // ─── Modal wrapper ───────────────────────────────────────────────────────────
@@ -114,6 +119,7 @@ function ModalHeader({ title, onClose }: { title: string; onClose: () => void })
 
 function UsersTab() {
   const [users, setUsers] = useState<SafeUser[]>([])
+  const [groups, setGroups] = useState<UserGroupWithCount[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [showAddModal, setShowAddModal] = useState(false)
   const [editUser, setEditUser] = useState<SafeUser | null>(null)
@@ -127,8 +133,9 @@ function UsersTab() {
   const [newPassword, setNewPassword] = useState('')
   const [newRole, setNewRole] = useState<'ADMIN' | 'MEMBER'>('MEMBER')
 
-  // Edit role form
-  const [editRole, setEditRole] = useState<'ADMIN' | 'MEMBER'>('MEMBER')
+  // Edit form
+  const [editRole, setEditRole] = useState<'ADMIN' | 'MEMBER' | 'READER'>('MEMBER')
+  const [editGroupId, setEditGroupId] = useState<string>('')
 
   const loadUsers = useCallback(async () => {
     setIsLoading(true)
@@ -144,7 +151,18 @@ function UsersTab() {
     }
   }, [])
 
-  useEffect(() => { loadUsers() }, [loadUsers])
+  const loadGroups = useCallback(async () => {
+    try {
+      const res = await fetch('/api/admin/groups')
+      if (!res.ok) return
+      const data: UserGroupWithCount[] = await res.json()
+      setGroups(data)
+    } catch (err) {
+      console.error(err)
+    }
+  }, [])
+
+  useEffect(() => { loadUsers(); loadGroups() }, [loadUsers, loadGroups])
 
   const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -180,7 +198,7 @@ function UsersTab() {
       const res = await fetch(`/api/admin/users/${editUser.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role: editRole }),
+        body: JSON.stringify({ role: editRole, groupId: editGroupId || null }),
       })
       if (!res.ok) {
         const body = await res.json()
@@ -333,7 +351,7 @@ function UsersTab() {
                         variant="ghost"
                         size="sm"
                         icon={<Edit3 size={13} />}
-                        onClick={() => { setEditUser(user); setEditRole(user.role); setSubmitError('') }}
+                        onClick={() => { setEditUser(user); setEditRole(user.role); setEditGroupId(user.groupId ?? ''); setSubmitError('') }}
                       />
                       <Button
                         variant="danger"
@@ -401,9 +419,21 @@ function UsersTab() {
                 <label style={{ fontSize: '12px', fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>
                   Rôle
                 </label>
-                <select value={editRole} onChange={(e) => setEditRole(e.target.value as 'ADMIN' | 'MEMBER')} style={selectStyle}>
+                <select value={editRole} onChange={(e) => setEditRole(e.target.value as 'ADMIN' | 'MEMBER' | 'READER')} style={selectStyle}>
                   <option value="MEMBER">Membre</option>
                   <option value="ADMIN">Administrateur</option>
+                  <option value="READER">Lecteur</option>
+                </select>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <label style={{ fontSize: '12px', fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>
+                  Groupe
+                </label>
+                <select value={editGroupId} onChange={(e) => setEditGroupId(e.target.value)} style={selectStyle}>
+                  <option value="">Aucun groupe</option>
+                  {groups.map((g) => (
+                    <option key={g.id} value={g.id}>{g.name}</option>
+                  ))}
                 </select>
               </div>
               {submitError && (
@@ -970,10 +1000,309 @@ function ActivityLogsTab() {
   )
 }
 
+// ─── Groups tab ──────────────────────────────────────────────────────────────
+
+function GroupsTab() {
+  const [groups, setGroups] = useState<UserGroupWithCount[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [editGroup, setEditGroup] = useState<UserGroupWithCount | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState('')
+
+  // Form fields
+  const [formName, setFormName] = useState('')
+  const [formDescription, setFormDescription] = useState('')
+  const [formColor, setFormColor] = useState('#00C9A7')
+
+  const loadGroups = useCallback(async () => {
+    setIsLoading(true)
+    try {
+      const res = await fetch('/api/admin/groups')
+      if (!res.ok) throw new Error('Failed')
+      const data: UserGroupWithCount[] = await res.json()
+      setGroups(data)
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
+
+  useEffect(() => { loadGroups() }, [loadGroups])
+
+  const resetForm = () => {
+    setFormName('')
+    setFormDescription('')
+    setFormColor('#00C9A7')
+    setSubmitError('')
+  }
+
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsSubmitting(true)
+    setSubmitError('')
+    try {
+      const res = await fetch('/api/admin/groups', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: formName, description: formDescription, color: formColor }),
+      })
+      if (!res.ok) {
+        const body = await res.json()
+        throw new Error(body.error ?? 'Erreur')
+      }
+      setShowAddModal(false)
+      resetForm()
+      loadGroups()
+    } catch (err) {
+      setSubmitError((err as Error).message)
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editGroup) return
+    setIsSubmitting(true)
+    setSubmitError('')
+    try {
+      const res = await fetch(`/api/admin/groups/${editGroup.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: formName, description: formDescription, color: formColor }),
+      })
+      if (!res.ok) {
+        const body = await res.json()
+        throw new Error(body.error ?? 'Erreur')
+      }
+      setEditGroup(null)
+      resetForm()
+      loadGroups()
+    } catch (err) {
+      setSubmitError((err as Error).message)
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleDelete = async (groupId: string) => {
+    if (!confirm('Supprimer ce groupe ? Les utilisateurs seront désassignés.')) return
+    try {
+      const res = await fetch(`/api/admin/groups/${groupId}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error('Échec de la suppression')
+      loadGroups()
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
+  const openEditModal = (group: UserGroupWithCount) => {
+    setEditGroup(group)
+    setFormName(group.name)
+    setFormDescription(group.description ?? '')
+    setFormColor(group.color ?? '#00C9A7')
+    setSubmitError('')
+  }
+
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <p style={{ fontFamily: 'var(--font-body)', fontSize: '13px', color: 'var(--text-secondary)', margin: 0 }}>
+          {groups.length} groupe{groups.length !== 1 ? 's' : ''}
+        </p>
+        <Button variant="primary" size="sm" icon={<Plus size={14} />} onClick={() => { resetForm(); setShowAddModal(true) }}>
+          Créer un groupe
+        </Button>
+      </div>
+
+      {isLoading ? (
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '60px' }}>
+          <Spinner size="lg" />
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {groups.map((group, i) => (
+            <motion.div
+              key={group.id}
+              initial={{ opacity: 0, x: -8 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: i * 0.04 }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '14px',
+                padding: '14px 18px',
+                background: 'var(--bg-surface)',
+                border: '1px solid var(--border)',
+                borderRadius: 'var(--radius-lg)',
+              }}
+            >
+              <div
+                style={{
+                  width: '10px',
+                  height: '10px',
+                  borderRadius: '50%',
+                  background: group.color ?? 'var(--accent)',
+                  flexShrink: 0,
+                  boxShadow: `0 0 8px ${group.color ?? 'var(--accent)'}60`,
+                }}
+              />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ fontFamily: 'var(--font-body)', fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
+                  {group.name}
+                </p>
+                {group.description && (
+                  <p style={{ fontFamily: 'var(--font-body)', fontSize: '12px', color: 'var(--text-secondary)', margin: '2px 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {group.description}
+                  </p>
+                )}
+              </div>
+              <span style={{ fontFamily: 'var(--font-body)', fontSize: '12px', color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>
+                {group._count.users} membre{group._count.users !== 1 ? 's' : ''}
+              </span>
+              <div style={{ display: 'flex', gap: '6px' }}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  icon={<Edit3 size={13} />}
+                  onClick={() => openEditModal(group)}
+                />
+                <Button
+                  variant="danger"
+                  size="sm"
+                  icon={<Trash2 size={13} />}
+                  onClick={() => handleDelete(group.id)}
+                />
+              </div>
+            </motion.div>
+          ))}
+
+          {groups.length === 0 && (
+            <div style={{ padding: '60px', textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '14px' }}>
+              Aucun groupe pour l&apos;instant
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Create group modal */}
+      <AnimatePresence>
+        {showAddModal && (
+          <ModalOverlay onClose={() => { setShowAddModal(false); setSubmitError('') }}>
+            <ModalHeader title="Nouveau groupe" onClose={() => { setShowAddModal(false); setSubmitError('') }} />
+            <form onSubmit={handleCreate} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <Input label="Nom du groupe" value={formName} onChange={(e) => setFormName(e.target.value)} required />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <label style={{ fontSize: '12px', fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>
+                  Description
+                </label>
+                <textarea
+                  value={formDescription}
+                  onChange={(e) => setFormDescription(e.target.value)}
+                  rows={2}
+                  style={{
+                    padding: '9px 12px', resize: 'vertical',
+                    fontFamily: 'var(--font-body)', fontSize: '14px',
+                    color: 'var(--text-primary)', background: 'var(--bg-raised)',
+                    border: '1px solid var(--border)', borderRadius: 'var(--radius-md)',
+                    outline: 'none', lineHeight: 1.5, width: '100%',
+                  }}
+                />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <label style={{ fontSize: '12px', fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>
+                  Couleur
+                </label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <input
+                    type="color"
+                    value={formColor}
+                    onChange={(e) => setFormColor(e.target.value)}
+                    style={{ width: '40px', height: '36px', border: 'none', cursor: 'pointer', background: 'transparent', borderRadius: '8px' }}
+                  />
+                  <span style={{ fontFamily: 'monospace', fontSize: '13px', color: 'var(--text-secondary)' }}>{formColor}</span>
+                </div>
+              </div>
+              {submitError && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 12px', borderRadius: 'var(--radius-md)', background: 'var(--red-dim)', border: '1px solid rgba(239,68,68,0.2)', color: 'var(--red)', fontSize: '13px' }}>
+                  <AlertCircle size={14} />{submitError}
+                </div>
+              )}
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '8px' }}>
+                <Button type="button" variant="secondary" onClick={() => setShowAddModal(false)}>Annuler</Button>
+                <Button type="submit" variant="primary" loading={isSubmitting} icon={!isSubmitting ? <Plus size={14} /> : undefined}>
+                  {isSubmitting ? 'Création...' : 'Créer le groupe'}
+                </Button>
+              </div>
+            </form>
+          </ModalOverlay>
+        )}
+      </AnimatePresence>
+
+      {/* Edit group modal */}
+      <AnimatePresence>
+        {editGroup && (
+          <ModalOverlay onClose={() => { setEditGroup(null); setSubmitError('') }}>
+            <ModalHeader title="Modifier le groupe" onClose={() => { setEditGroup(null); setSubmitError('') }} />
+            <form onSubmit={handleUpdate} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <Input label="Nom du groupe" value={formName} onChange={(e) => setFormName(e.target.value)} required />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <label style={{ fontSize: '12px', fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>
+                  Description
+                </label>
+                <textarea
+                  value={formDescription}
+                  onChange={(e) => setFormDescription(e.target.value)}
+                  rows={2}
+                  style={{
+                    padding: '9px 12px', resize: 'vertical',
+                    fontFamily: 'var(--font-body)', fontSize: '14px',
+                    color: 'var(--text-primary)', background: 'var(--bg-raised)',
+                    border: '1px solid var(--border)', borderRadius: 'var(--radius-md)',
+                    outline: 'none', lineHeight: 1.5, width: '100%',
+                  }}
+                />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <label style={{ fontSize: '12px', fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>
+                  Couleur
+                </label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <input
+                    type="color"
+                    value={formColor}
+                    onChange={(e) => setFormColor(e.target.value)}
+                    style={{ width: '40px', height: '36px', border: 'none', cursor: 'pointer', background: 'transparent', borderRadius: '8px' }}
+                  />
+                  <span style={{ fontFamily: 'monospace', fontSize: '13px', color: 'var(--text-secondary)' }}>{formColor}</span>
+                </div>
+              </div>
+              {submitError && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 12px', borderRadius: 'var(--radius-md)', background: 'var(--red-dim)', border: '1px solid rgba(239,68,68,0.2)', color: 'var(--red)', fontSize: '13px' }}>
+                  <AlertCircle size={14} />{submitError}
+                </div>
+              )}
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '8px' }}>
+                <Button type="button" variant="secondary" onClick={() => setEditGroup(null)}>Annuler</Button>
+                <Button type="submit" variant="primary" loading={isSubmitting}>
+                  {isSubmitting ? 'Enregistrement...' : 'Enregistrer'}
+                </Button>
+              </div>
+            </form>
+          </ModalOverlay>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
+
 // ─── Main admin page ───────────────────────────────────────────────────────────
 
 const TABS = [
   { id: 'users', label: 'Utilisateurs', icon: <Users size={16} /> },
+  { id: 'groups', label: 'Groupes', icon: <UsersRound size={16} /> },
   { id: 'categories', label: 'Catégories', icon: <FolderOpen size={16} /> },
   { id: 'documents', label: 'Documents', icon: <FileText size={16} /> },
   { id: 'logs', label: 'Journal', icon: <Activity size={16} /> },
@@ -1059,6 +1388,9 @@ export default function AdminPage() {
 
         <Tabs.Content value="users" style={{ outline: 'none' }}>
           <UsersTab />
+        </Tabs.Content>
+        <Tabs.Content value="groups" style={{ outline: 'none' }}>
+          <GroupsTab />
         </Tabs.Content>
         <Tabs.Content value="categories" style={{ outline: 'none' }}>
           <CategoriesTab />

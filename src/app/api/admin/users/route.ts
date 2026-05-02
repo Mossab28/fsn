@@ -3,9 +3,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-type Role = 'ADMIN' | 'MEMBER'
+type Role = 'ADMIN' | 'MEMBER' | 'READER'
 
-const VALID_ROLES = new Set<string>(['ADMIN', 'MEMBER'])
+const VALID_ROLES = new Set<string>(['ADMIN', 'MEMBER', 'READER'])
 
 function isValidRole(value: unknown): value is Role {
   return typeof value === 'string' && VALID_ROLES.has(value)
@@ -27,8 +27,16 @@ export async function GET(_request: NextRequest): Promise<NextResponse> {
         email: true,
         name: true,
         role: true,
+        groupId: true,
         createdAt: true,
         updatedAt: true,
+        group: {
+          select: {
+            id: true,
+            name: true,
+            color: true,
+          },
+        },
       },
       orderBy: { createdAt: 'desc' },
     })

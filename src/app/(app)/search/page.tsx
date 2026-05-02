@@ -16,11 +16,18 @@ import {
   LayoutGrid,
   List,
   ArrowLeft,
+  SlidersHorizontal,
+  ChevronDown,
+  RotateCcw,
+  Calendar,
+  User,
+  Archive,
 } from 'lucide-react'
 import { DocumentGrid } from '@/components/documents/DocumentGrid'
 import { FilterPanel } from '@/components/documents/FilterPanel'
 import { Badge } from '@/components/ui/Badge'
-import type { DocumentWithRelations, Category, PaginatedResponse } from '@/types'
+import type { DocumentWithRelations, Category, PaginatedResponse, DocumentStatus } from '@/types'
+import { DOCUMENT_STATUS_LABELS, DOCUMENT_STATUS_COLORS } from '@/types'
 
 const ICON_MAP: Record<string, React.ComponentType<{ size?: number }>> = {
   FileText,
@@ -41,6 +48,13 @@ const FILE_TYPE_LABELS: Record<string, string> = {
 
 type ViewMode = 'grid' | 'list'
 
+interface Folder {
+  id: string
+  name: string
+  color: string | null
+  parentId: string | null
+}
+
 interface AISearchResult {
   documents: DocumentWithRelations[]
   filters: {
@@ -52,6 +66,8 @@ interface AISearchResult {
   explanation: string
   total: number
 }
+
+const ALL_STATUSES: DocumentStatus[] = ['BROUILLON', 'ENRICHISSEMENT', 'RELECTURE', 'DIFFUSION', 'ARCHIVE']
 
 export default function SearchPage() {
   const [query, setQuery] = useState('')
@@ -68,6 +84,16 @@ export default function SearchPage() {
   const [sortBy, setSortBy] = useState('createdAt')
   const [sortOrder, setSortOrder] = useState('desc')
 
+  // Advanced filter state
+  const [selectedStatuses, setSelectedStatuses] = useState<DocumentStatus[]>([])
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
+  const [authorName, setAuthorName] = useState('')
+  const [selectedFolderId, setSelectedFolderId] = useState('')
+  const [includeArchived, setIncludeArchived] = useState(false)
+  const [advancedOpen, setAdvancedOpen] = useState(false)
+  const [folders, setFolders] = useState<Folder[]>([])
+
   // AI search state
   const [isAISearching, setIsAISearching] = useState(false)
   const [aiResults, setAiResults] = useState<AISearchResult | null>(null)
@@ -81,6 +107,11 @@ export default function SearchPage() {
     fetch('/api/categories')
       .then((r) => r.json())
       .then((data: (Category & { documentCount?: number })[]) => setCategories(data))
+      .catch(console.error)
+
+    fetch('/api/folders')
+      .then((r) => r.json())
+      .then((data: Folder[]) => setFolders(Array.isArray(data) ? data : []))
       .catch(console.error)
 
     inputRef.current?.focus()
@@ -99,6 +130,12 @@ export default function SearchPage() {
       if (q.trim()) params.set('q', q.trim())
       if (selectedCategories.length === 1) params.set('categoryId', selectedCategories[0])
       if (selectedTypes.length === 1) params.set('mimeType', selectedTypes[0])
+      if (selectedStatuses.length > 0) params.set('status', selectedStatuses.join(','))
+      if (dateFrom) params.set('dateFrom', dateFrom)
+      if (dateTo) params.set('dateTo', dateTo)
+      if (authorName.trim()) params.set('authorName', authorName.trim())
+      if (selectedFolderId) params.set('folderId', selectedFolderId)
+      if (includeArchived) params.set('includeArchived', 'true')
       params.set('pageSize', '24')
 
       try {
@@ -132,7 +169,7 @@ export default function SearchPage() {
         }
       }
     },
-    [selectedCategories, selectedTypes]
+    [selectedCategories, selectedTypes, selectedStatuses, dateFrom, dateTo, authorName, selectedFolderId, includeArchived]
   )
 
   // Debounced search on query / filter changes
@@ -150,7 +187,7 @@ export default function SearchPage() {
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current)
     }
-  }, [query, selectedCategories, selectedTypes, hasSearched, performSearch, aiResults])
+  }, [query, selectedCategories, selectedTypes, selectedStatuses, dateFrom, dateTo, authorName, selectedFolderId, includeArchived, hasSearched, performSearch, aiResults])
 
   const handleAISearch = useCallback(async () => {
     if (!query.trim() || isAISearching) return
@@ -217,8 +254,35 @@ export default function SearchPage() {
   const handleReset = useCallback(() => {
     setSelectedCategories([])
     setSelectedTypes([])
+    setSelectedStatuses([])
+    setDateFrom('')
+    setDateTo('')
+    setAuthorName('')
+    setSelectedFolderId('')
+    setIncludeArchived(false)
     setSortBy('createdAt')
     setSortOrder('desc')
+  }, [])
+
+  const handleStatusChange = useCallback((statuses: DocumentStatus[]) => {
+    setSelectedStatuses(statuses)
+  }, [])
+
+  const advancedFilterCount =
+    selectedStatuses.length +
+    (dateFrom ? 1 : 0) +
+    (dateTo ? 1 : 0) +
+    (authorName.trim() ? 1 : 0) +
+    (selectedFolderId ? 1 : 0) +
+    (includeArchived ? 1 : 0)
+
+  const resetAdvancedFilters = useCallback(() => {
+    setSelectedStatuses([])
+    setDateFrom('')
+    setDateTo('')
+    setAuthorName('')
+    setSelectedFolderId('')
+    setIncludeArchived(false)
   }, [])
 
   const handleSearchSubmit = () => {
@@ -433,6 +497,372 @@ export default function SearchPage() {
           </div>
         </div>
       </motion.div>
+
+      {/* Advanced Filters Panel */}
+      <div style={{ maxWidth: '680px', margin: '0 auto', padding: '0 24px' }}>
+        <button
+          onClick={() => setAdvancedOpen(!advancedOpen)}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '8px 16px',
+            background: advancedFilterCount > 0 ? 'var(--accent-dim)' : 'var(--bg-surface)',
+            border: `1px solid ${advancedFilterCount > 0 ? 'rgba(0, 168, 142, 0.3)' : 'var(--border)'}`,
+            borderRadius: 'var(--radius-md)',
+            color: advancedFilterCount > 0 ? 'var(--accent)' : 'var(--text-secondary)',
+            fontFamily: 'var(--font-body)',
+            fontSize: '13px',
+            fontWeight: 500,
+            cursor: 'pointer',
+            transition: 'all var(--transition)',
+            marginBottom: advancedOpen ? '0' : '20px',
+          }}
+        >
+          <SlidersHorizontal size={14} />
+          Filtres avanc&#233;s
+          {advancedFilterCount > 0 && (
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                minWidth: '18px',
+                height: '18px',
+                borderRadius: '9999px',
+                background: 'var(--accent)',
+                color: '#FFFFFF',
+                fontSize: '10px',
+                fontWeight: 700,
+                padding: '0 5px',
+              }}
+            >
+              {advancedFilterCount}
+            </span>
+          )}
+          <motion.span
+            animate={{ rotate: advancedOpen ? 180 : 0 }}
+            transition={{ duration: 0.2 }}
+            style={{ display: 'flex', alignItems: 'center' }}
+          >
+            <ChevronDown size={14} />
+          </motion.span>
+        </button>
+
+        <AnimatePresence initial={false}>
+          {advancedOpen && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.25 }}
+              style={{ overflow: 'hidden' }}
+            >
+              <div
+                style={{
+                  marginTop: '12px',
+                  marginBottom: '20px',
+                  padding: '20px',
+                  background: 'var(--bg-surface)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 'var(--radius-lg)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '16px',
+                }}
+              >
+                {/* Status multi-select */}
+                <div>
+                  <label
+                    style={{
+                      display: 'block',
+                      fontFamily: 'var(--font-body)',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      color: 'var(--text-secondary)',
+                      marginBottom: '8px',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.04em',
+                    }}
+                  >
+                    Statut
+                  </label>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                    {ALL_STATUSES.map((s) => {
+                      const isActive = selectedStatuses.includes(s)
+                      return (
+                        <button
+                          key={s}
+                          onClick={() => {
+                            if (isActive) {
+                              setSelectedStatuses(selectedStatuses.filter((st) => st !== s))
+                            } else {
+                              setSelectedStatuses([...selectedStatuses, s])
+                            }
+                          }}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            padding: '6px 12px',
+                            borderRadius: '9999px',
+                            background: isActive ? `${DOCUMENT_STATUS_COLORS[s]}18` : 'var(--bg-raised)',
+                            border: `1px solid ${isActive ? DOCUMENT_STATUS_COLORS[s] : 'var(--border)'}`,
+                            color: isActive ? DOCUMENT_STATUS_COLORS[s] : 'var(--text-secondary)',
+                            fontFamily: 'var(--font-body)',
+                            fontSize: '12px',
+                            fontWeight: 500,
+                            cursor: 'pointer',
+                            transition: 'all var(--transition)',
+                          }}
+                        >
+                          <span
+                            style={{
+                              width: '7px',
+                              height: '7px',
+                              borderRadius: '50%',
+                              background: DOCUMENT_STATUS_COLORS[s],
+                              flexShrink: 0,
+                            }}
+                          />
+                          {DOCUMENT_STATUS_LABELS[s]}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                {/* Date range + Author row */}
+                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                  {/* Date from */}
+                  <div style={{ flex: '1 1 140px', minWidth: '140px' }}>
+                    <label
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        fontFamily: 'var(--font-body)',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        color: 'var(--text-secondary)',
+                        marginBottom: '6px',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.04em',
+                      }}
+                    >
+                      <Calendar size={12} />
+                      Date d&#233;but
+                    </label>
+                    <input
+                      type="date"
+                      value={dateFrom}
+                      onChange={(e) => setDateFrom(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '8px 10px',
+                        background: 'var(--bg-raised)',
+                        border: '1px solid var(--border)',
+                        borderRadius: 'var(--radius-md)',
+                        fontFamily: 'var(--font-body)',
+                        fontSize: '13px',
+                        color: 'var(--text-primary)',
+                        outline: 'none',
+                      }}
+                    />
+                  </div>
+
+                  {/* Date to */}
+                  <div style={{ flex: '1 1 140px', minWidth: '140px' }}>
+                    <label
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        fontFamily: 'var(--font-body)',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        color: 'var(--text-secondary)',
+                        marginBottom: '6px',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.04em',
+                      }}
+                    >
+                      <Calendar size={12} />
+                      Date fin
+                    </label>
+                    <input
+                      type="date"
+                      value={dateTo}
+                      onChange={(e) => setDateTo(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '8px 10px',
+                        background: 'var(--bg-raised)',
+                        border: '1px solid var(--border)',
+                        borderRadius: 'var(--radius-md)',
+                        fontFamily: 'var(--font-body)',
+                        fontSize: '13px',
+                        color: 'var(--text-primary)',
+                        outline: 'none',
+                      }}
+                    />
+                  </div>
+
+                  {/* Author name */}
+                  <div style={{ flex: '1 1 180px', minWidth: '180px' }}>
+                    <label
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        fontFamily: 'var(--font-body)',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        color: 'var(--text-secondary)',
+                        marginBottom: '6px',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.04em',
+                      }}
+                    >
+                      <User size={12} />
+                      Auteur
+                    </label>
+                    <input
+                      type="text"
+                      value={authorName}
+                      onChange={(e) => setAuthorName(e.target.value)}
+                      placeholder="Nom de l'auteur..."
+                      style={{
+                        width: '100%',
+                        padding: '8px 10px',
+                        background: 'var(--bg-raised)',
+                        border: '1px solid var(--border)',
+                        borderRadius: 'var(--radius-md)',
+                        fontFamily: 'var(--font-body)',
+                        fontSize: '13px',
+                        color: 'var(--text-primary)',
+                        outline: 'none',
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Folder + Archived row */}
+                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                  {/* Folder selector */}
+                  <div style={{ flex: '1 1 200px', minWidth: '200px' }}>
+                    <label
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        fontFamily: 'var(--font-body)',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        color: 'var(--text-secondary)',
+                        marginBottom: '6px',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.04em',
+                      }}
+                    >
+                      <FolderOpen size={12} />
+                      Dossier
+                    </label>
+                    <select
+                      value={selectedFolderId}
+                      onChange={(e) => setSelectedFolderId(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '8px 10px',
+                        background: 'var(--bg-raised)',
+                        border: '1px solid var(--border)',
+                        borderRadius: 'var(--radius-md)',
+                        fontFamily: 'var(--font-body)',
+                        fontSize: '13px',
+                        color: selectedFolderId ? 'var(--text-primary)' : 'var(--text-tertiary)',
+                        outline: 'none',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <option value="">Tous les dossiers</option>
+                      {folders.map((f) => (
+                        <option key={f.id} value={f.id}>
+                          {f.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Include archived toggle */}
+                  <div style={{ flex: '0 0 auto' }}>
+                    <label
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        padding: '8px 14px',
+                        background: includeArchived ? 'rgba(107, 114, 128, 0.1)' : 'var(--bg-raised)',
+                        border: `1px solid ${includeArchived ? '#6B7280' : 'var(--border)'}`,
+                        borderRadius: 'var(--radius-md)',
+                        cursor: 'pointer',
+                        transition: 'all var(--transition)',
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={includeArchived}
+                        onChange={(e) => setIncludeArchived(e.target.checked)}
+                        style={{ display: 'none' }}
+                      />
+                      <Archive
+                        size={14}
+                        style={{ color: includeArchived ? '#6B7280' : 'var(--text-tertiary)' }}
+                      />
+                      <span
+                        style={{
+                          fontFamily: 'var(--font-body)',
+                          fontSize: '12px',
+                          fontWeight: 500,
+                          color: includeArchived ? 'var(--text-primary)' : 'var(--text-secondary)',
+                        }}
+                      >
+                        Inclure les archiv&#233;s
+                      </span>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Reset advanced filters */}
+                {advancedFilterCount > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                    <button
+                      onClick={resetAdvancedFilters}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        padding: '6px 14px',
+                        background: 'transparent',
+                        border: '1px solid var(--border)',
+                        borderRadius: 'var(--radius-md)',
+                        color: 'var(--text-secondary)',
+                        fontFamily: 'var(--font-body)',
+                        fontSize: '12px',
+                        fontWeight: 500,
+                        cursor: 'pointer',
+                        transition: 'all var(--transition)',
+                      }}
+                    >
+                      <RotateCcw size={12} />
+                      R&#233;initialiser les filtres
+                    </button>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
 
       {/* AI Error toast */}
       <AnimatePresence>
@@ -1004,10 +1434,12 @@ export default function SearchPage() {
                 categories={categories}
                 selectedCategories={selectedCategories}
                 selectedTypes={selectedTypes}
+                selectedStatuses={selectedStatuses}
                 sortBy={sortBy}
                 sortOrder={sortOrder}
                 onCategoryChange={handleCategoryChange}
                 onTypeChange={handleTypeChange}
+                onStatusChange={handleStatusChange}
                 onSortChange={handleSortChange}
                 onReset={handleReset}
                 documentCounts={documentCounts}

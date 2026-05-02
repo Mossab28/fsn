@@ -14,6 +14,8 @@ import {
   MessageSquare,
   Sun,
   Moon,
+  BookUser,
+  UserCog,
   type LucideIcon,
 } from 'lucide-react'
 import { Avatar } from '@/components/ui/Avatar'
@@ -29,6 +31,8 @@ const navItems: NavItem[] = [
   { href: '/dashboard', label: 'Tableau de bord', icon: LayoutDashboard },
   { href: '/documents', label: 'Documents', icon: Files },
   { href: '/search', label: 'Recherche', icon: Search },
+  { href: '/annuaire', label: 'Annuaire', icon: BookUser },
+  { href: '/profil', label: 'Profil', icon: UserCog },
 ]
 
 const adminItems: NavItem[] = [

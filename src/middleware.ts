@@ -1,12 +1,34 @@
 import { withAuth } from 'next-auth/middleware'
 import { NextResponse } from 'next/server'
 
+// Role-based route access matrix
+const ROLE_ACCESS: Record<string, string[]> = {
+  READER: ['/dashboard', '/documents', '/search', '/annuaire', '/profil'],
+  MEMBER: ['/dashboard', '/documents', '/search', '/annuaire', '/profil'],
+  ADMIN: ['/dashboard', '/documents', '/search', '/annuaire', '/profil', '/admin'],
+}
+
+function hasRouteAccess(role: string, pathname: string): boolean {
+  const allowedRoutes = ROLE_ACCESS[role]
+  if (!allowedRoutes) return false
+  return allowedRoutes.some(
+    (route) => pathname === route || pathname.startsWith(route + '/')
+  )
+}
+
 export default withAuth(
   function middleware(req) {
     const token = req.nextauth.token
-    const isAdminRoute = req.nextUrl.pathname.startsWith('/admin')
+    const pathname = req.nextUrl.pathname
+    const role = (token?.role as string) ?? 'READER'
 
-    if (isAdminRoute && token?.role !== 'ADMIN') {
+    // Admin route protection (keep existing logic)
+    if (pathname.startsWith('/admin') && role !== 'ADMIN') {
+      return NextResponse.redirect(new URL('/dashboard', req.url))
+    }
+
+    // Role-based route protection
+    if (!hasRouteAccess(role, pathname)) {
       return NextResponse.redirect(new URL('/dashboard', req.url))
     }
 
@@ -20,5 +42,12 @@ export default withAuth(
 )
 
 export const config = {
-  matcher: ['/dashboard/:path*', '/documents/:path*', '/search/:path*', '/admin/:path*'],
+  matcher: [
+    '/dashboard/:path*',
+    '/documents/:path*',
+    '/search/:path*',
+    '/admin/:path*',
+    '/annuaire/:path*',
+    '/profil/:path*',
+  ],
 }

@@ -2,10 +2,10 @@ import { getServerSession } from 'next-auth'
 import { NextRequest, NextResponse } from 'next/server'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-type Role = 'ADMIN' | 'MEMBER'
+type Role = 'ADMIN' | 'MEMBER' | 'READER'
 type RouteContext = { params: Promise<{ id: string }> }
 
-const VALID_ROLES = new Set<string>(['ADMIN', 'MEMBER'])
+const VALID_ROLES = new Set<string>(['ADMIN', 'MEMBER', 'READER'])
 
 function isValidRole(value: unknown): value is Role {
   return typeof value === 'string' && VALID_ROLES.has(value)
@@ -36,9 +36,9 @@ export async function PATCH(
       return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
     }
 
-    const { name, role, email } = body as Record<string, unknown>
+    const { name, role, email, groupId } = body as Record<string, unknown>
 
-    const updateData: { name?: string; role?: Role; email?: string } = {}
+    const updateData: { name?: string; role?: Role; email?: string; groupId?: string | null } = {}
 
     if (name !== undefined) {
       if (typeof name !== 'string' || !name.trim()) {
@@ -65,6 +65,14 @@ export async function PATCH(
         return NextResponse.json({ error: 'Invalid role' }, { status: 400 })
       }
       updateData.role = role
+    }
+
+    if (groupId !== undefined) {
+      if (groupId === null || groupId === '') {
+        updateData.groupId = null
+      } else if (typeof groupId === 'string') {
+        updateData.groupId = groupId
+      }
     }
 
     const user = await prisma.user.update({

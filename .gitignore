@@ -49,5 +49,8 @@ next-env.d.ts
 prisma/dev.db
 prisma/dev.db-journal
 
+# backups
+/backups
+
 # claude-flow
 .claude-flow/

@@ -10,10 +10,11 @@ export async function GET(req: NextRequest) {
   }
 
   const { searchParams } = new URL(req.url)
+  const all = searchParams.get('all')
   const parentId = searchParams.get('parentId') // null = root
 
   const folders = await prisma.folder.findMany({
-    where: { parentId: parentId || null },
+    where: all === 'true' ? {} : { parentId: parentId || null },
     include: {
       _count: { select: { children: true, documents: true } },
     },

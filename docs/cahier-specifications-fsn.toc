@@ -1,0 +1,54 @@
+\xpg@aux {}{french}
+\contentsline {section}{Historique des versions}{1}{Doc-Start}%
+\contentsline {section}{\numberline {1}Présentation générale}{4}{section.1}%
+\contentsline {subsection}{\numberline {1.1}Contexte du projet}{4}{subsection.1.1}%
+\contentsline {subsection}{\numberline {1.2}Objectifs}{4}{subsection.1.2}%
+\contentsline {subsection}{\numberline {1.3}Périmètre fonctionnel}{5}{subsection.1.3}%
+\contentsline {subsection}{\numberline {1.4}Hors périmètre (prévu en phase 2)}{5}{subsection.1.4}%
+\contentsline {section}{\numberline {2}Gestion des utilisateurs}{5}{section.2}%
+\contentsline {subsection}{\numberline {2.1}Opérations sur les utilisateurs}{5}{subsection.2.1}%
+\contentsline {subsection}{\numberline {2.2}Rôles et permissions}{5}{subsection.2.2}%
+\contentsline {subsection}{\numberline {2.3}Groupes d'utilisateurs}{6}{subsection.2.3}%
+\contentsline {subsection}{\numberline {2.4}Annuaire}{6}{subsection.2.4}%
+\contentsline {subsection}{\numberline {2.5}Administration au quotidien}{6}{subsection.2.5}%
+\contentsline {subsection}{\numberline {2.6}Matrice des permissions}{7}{subsection.2.6}%
+\contentsline {section}{\numberline {3}Gestion documentaire}{7}{section.3}%
+\contentsline {subsection}{\numberline {3.1}Arborescence de dossiers (type Google Drive)}{7}{subsection.3.1}%
+\contentsline {subsubsection}{\numberline {3.1.1}Navigation}{7}{subsubsection.3.1.1}%
+\contentsline {subsubsection}{\numberline {3.1.2}Opérations sur les dossiers (administrateur)}{8}{subsubsection.3.1.2}%
+\contentsline {subsubsection}{\numberline {3.1.3}Importer une arborescence existante}{8}{subsubsection.3.1.3}%
+\contentsline {subsubsection}{\numberline {3.1.4}Droits d'accès par dossier}{8}{subsubsection.3.1.4}%
+\contentsline {subsection}{\numberline {3.2}Formats de fichiers acceptés}{9}{subsection.3.2}%
+\contentsline {subsection}{\numberline {3.3}Fichiers audio et vidéo (MP4)}{9}{subsection.3.3}%
+\contentsline {subsection}{\numberline {3.4}Téléverser un document}{9}{subsection.3.4}%
+\contentsline {subsection}{\numberline {3.5}Page de détail d'un document}{10}{subsection.3.5}%
+\contentsline {subsection}{\numberline {3.6}Versioning}{10}{subsection.3.6}%
+\contentsline {subsection}{\numberline {3.7}Cycle de vie des documents}{10}{subsection.3.7}%
+\contentsline {subsubsection}{\numberline {3.7.1}Lien entre statut et version}{11}{subsubsection.3.7.1}%
+\contentsline {section}{\numberline {4}Recherche et accès à l'information}{11}{section.4}%
+\contentsline {subsection}{\numberline {4.1}Recherche par mots-clés}{11}{subsection.4.1}%
+\contentsline {subsection}{\numberline {4.2}Recherche dans le contenu des fichiers}{12}{subsection.4.2}%
+\contentsline {subsection}{\numberline {4.3}Filtres et tri}{12}{subsection.4.3}%
+\contentsline {subsection}{\numberline {4.4}Recherche dans l'annuaire}{12}{subsection.4.4}%
+\contentsline {section}{\numberline {5}Collaboration}{12}{section.5}%
+\contentsline {subsection}{\numberline {5.1}Édition collaborative}{12}{subsection.5.1}%
+\contentsline {subsection}{\numberline {5.2}Fils de discussion}{13}{subsection.5.2}%
+\contentsline {subsection}{\numberline {5.3}Partage}{13}{subsection.5.3}%
+\contentsline {section}{\numberline {6}Sécurité et conformité}{13}{section.6}%
+\contentsline {subsection}{\numberline {6.1}Authentification}{13}{subsection.6.1}%
+\contentsline {subsection}{\numberline {6.2}Conformité RGPD}{13}{subsection.6.2}%
+\contentsline {subsection}{\numberline {6.3}Supervision de l'hébergement}{14}{subsection.6.3}%
+\contentsline {subsection}{\numberline {6.4}Protection des fichiers}{14}{subsection.6.4}%
+\contentsline {section}{\numberline {7}Archivage et sauvegarde}{14}{section.7}%
+\contentsline {subsection}{\numberline {7.1}Archivage}{14}{subsection.7.1}%
+\contentsline {subsection}{\numberline {7.2}Sauvegarde}{14}{subsection.7.2}%
+\contentsline {section}{\numberline {8}Interface utilisateur}{15}{section.8}%
+\contentsline {subsection}{\numberline {8.1}Tableau de bord}{15}{subsection.8.1}%
+\contentsline {subsection}{\numberline {8.2}Navigation}{15}{subsection.8.2}%
+\contentsline {subsection}{\numberline {8.3}Principes d'interface}{15}{subsection.8.3}%
+\contentsline {section}{\numberline {9}Journal d'activité}{15}{section.9}%
+\contentsline {section}{\numberline {10}Exigences générales}{16}{section.10}%
+\contentsline {subsection}{\numberline {10.1}Performance}{16}{subsection.10.1}%
+\contentsline {subsection}{\numberline {10.2}Disponibilité}{16}{subsection.10.2}%
+\contentsline {subsection}{\numberline {10.3}Évolutivité}{16}{subsection.10.3}%
+\contentsline {section}{\numberline {11}Glossaire}{17}{section.11}%

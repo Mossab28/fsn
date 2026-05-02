@@ -1,6 +1,7 @@
 'use client'
 
 import React from 'react'
+import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import {
   FileText,
@@ -14,8 +15,9 @@ import {
 } from 'lucide-react'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
+import { DocumentStatusBadge } from '@/components/documents/DocumentStatusBadge'
 import { formatBytes, formatDate, parseTags } from '@/lib/utils'
-import type { DocumentWithRelations } from '@/types'
+import type { DocumentWithRelations, DocumentStatus } from '@/types'
 
 const TAG_COLORS = [
   { bg: 'rgba(59, 130, 246, 0.1)', text: '#3B82F6', border: 'rgba(59, 130, 246, 0.2)' },
@@ -90,7 +92,12 @@ function getFileTypeConfig(mimeType: string): FileTypeConfig {
 }
 
 export function DocumentCard({ document, onDelete }: DocumentCardProps) {
+  const router = useRouter()
   const fileType = getFileTypeConfig(document.mimeType)
+
+  const handleClick = () => {
+    router.push(`/documents/${document.id}`)
+  }
 
   const handleDownload = (e: React.MouseEvent) => {
     e.preventDefault()
@@ -121,6 +128,7 @@ export function DocumentCard({ document, onDelete }: DocumentCardProps) {
   return (
     <motion.article
       style={cardStyle}
+      onClick={handleClick}
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       whileHover={{
@@ -163,6 +171,7 @@ export function DocumentCard({ document, onDelete }: DocumentCardProps) {
           {fileType.icon}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+          <DocumentStatusBadge status={document.status as DocumentStatus} />
           {document.category && (
             <Badge variant="accent">{document.category.name}</Badge>
           )}
@@ -273,6 +282,18 @@ export function DocumentCard({ document, onDelete }: DocumentCardProps) {
             }}
           >
             {formatBytes(document.fileSize)}
+          </span>
+          <span style={{ color: 'var(--border)', fontSize: '11px', flexShrink: 0 }}>·</span>
+          <span
+            style={{
+              fontSize: '10px',
+              fontWeight: 700,
+              color: 'var(--accent)',
+              whiteSpace: 'nowrap',
+              flexShrink: 0,
+            }}
+          >
+            v{document.currentVersion}
           </span>
           {parseTags(document.tags).length > 0 && (
             <>
