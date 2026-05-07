@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useCallback } from 'react'
-import { useDropzone } from 'react-dropzone'
+import { useDropzone, type FileRejection } from 'react-dropzone'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Upload,
@@ -120,6 +120,7 @@ export function UploadModal({ open, onOpenChange, categories, onSuccess }: Uploa
   const onDrop = useCallback((acceptedFiles: File[]) => {
     if (acceptedFiles.length === 0) return
     const file = acceptedFiles[0]
+    setErrorMessage('')
     setSelectedFile({
       file,
       name: file.name,
@@ -129,9 +130,25 @@ export function UploadModal({ open, onOpenChange, categories, onSuccess }: Uploa
     setTitle(slugFromFilename(file.name))
   }, [])
 
+  const onDropRejected = useCallback((rejections: FileRejection[]) => {
+    const r = rejections[0]
+    if (!r) return
+    const err = r.errors[0]
+    if (err?.code === 'file-too-large') {
+      setErrorMessage(`Fichier trop volumineux : ${(r.file.size / 1024 / 1024).toFixed(1)} Mo (max 50 Mo)`)
+    } else if (err?.code === 'file-invalid-type') {
+      setErrorMessage(`Type de fichier non supporté : ${r.file.type || r.file.name.split('.').pop()}`)
+    } else {
+      setErrorMessage(err?.message ?? 'Fichier rejeté')
+    }
+  }, [])
+
   const { getRootProps, getInputProps, isDragActive, isDragReject } = useDropzone({
     onDrop,
-    accept: ACCEPTED_TYPES,
+    onDropRejected,
+    // Accept any file — we validate server-side. Browsers don't always report correct MIME types
+    // for video/audio files (especially MP4 → application/octet-stream sometimes).
+    accept: undefined,
     maxFiles: 1,
     maxSize: 50 * 1024 * 1024, // 50MB
   })

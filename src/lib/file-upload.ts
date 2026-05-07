@@ -39,6 +39,32 @@ const ALLOWED_MIME_TYPES = new Set([
   'audio/x-m4a',
 ])
 
+const ALLOWED_EXTENSIONS = new Set([
+  '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx',
+  '.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.tiff', '.tif',
+  '.txt', '.csv', '.html', '.htm', '.md', '.markdown',
+  '.mp4', '.webm', '.mp3', '.wav', '.ogg', '.m4a', '.flac', '.aac', '.mov', '.mkv',
+])
+
+// Fallback MIME guess from extension (browsers sometimes report wrong/empty types)
+const EXT_TO_MIME: Record<string, string> = {
+  '.mp4': 'video/mp4',
+  '.webm': 'video/webm',
+  '.mov': 'video/quicktime',
+  '.mkv': 'video/x-matroska',
+  '.mp3': 'audio/mpeg',
+  '.wav': 'audio/wav',
+  '.ogg': 'audio/ogg',
+  '.m4a': 'audio/mp4',
+  '.flac': 'audio/flac',
+  '.aac': 'audio/aac',
+  '.pdf': 'application/pdf',
+  '.txt': 'text/plain',
+  '.csv': 'text/csv',
+  '.md': 'text/markdown',
+  '.html': 'text/html',
+}
+
 const MAX_FILE_SIZE = 50 * 1024 * 1024 // 50MB
 
 function getUploadDir(): string {
@@ -51,16 +77,22 @@ export function getFilePath(storedName: string): string {
 
 export async function saveFile(
   file: File
-): Promise<{ storedName: string; filePath: string; fileSize: number }> {
-  if (!ALLOWED_MIME_TYPES.has(file.type)) {
-    throw new Error(`Unsupported file type: ${file.type}`)
+): Promise<{ storedName: string; filePath: string; fileSize: number; mimeType: string }> {
+  const ext = extname(file.name).toLowerCase()
+  // Validate by MIME OR extension (browsers sometimes mis-detect MIME for video/audio)
+  const mimeOk = ALLOWED_MIME_TYPES.has(file.type)
+  const extOk = ALLOWED_EXTENSIONS.has(ext)
+  if (!mimeOk && !extOk) {
+    throw new Error(`Unsupported file type: ${file.type || ext || 'unknown'}`)
   }
 
   if (file.size > MAX_FILE_SIZE) {
     throw new Error(`File size exceeds the 50MB limit`)
   }
 
-  const ext = extname(file.name)
+  // Resolve a clean MIME type: trust the browser if accepted, else infer from extension
+  const mimeType = mimeOk ? file.type : (EXT_TO_MIME[ext] ?? file.type ?? 'application/octet-stream')
+
   const storedName = `${randomUUID()}${ext}`
   const filePath = getFilePath(storedName)
 
@@ -71,6 +103,7 @@ export async function saveFile(
     storedName,
     filePath,
     fileSize: file.size,
+    mimeType,
   }
 }
 

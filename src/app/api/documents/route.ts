@@ -148,14 +148,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       publishedAt = parsed
     }
 
-    const { storedName, filePath, fileSize } = await saveFile(file)
+    const { storedName, filePath, fileSize, mimeType } = await saveFile(file)
 
     // Extraction du contenu textuel pour indexation
     let textContent: string | null = null
-    const transcribable = isTranscribable(file.type, filePath)
+    const transcribable = isTranscribable(mimeType, filePath)
     if (!transcribable) {
       // PDF/DOCX/TXT : extraction synchrone (rapide)
-      textContent = await extractTextContent(filePath, file.type)
+      textContent = await extractTextContent(filePath, mimeType)
     }
     // Pour audio/vidéo : transcription asynchrone (Whisper local prend du temps)
     // → on lance après création du document, en background
@@ -171,7 +171,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         storedName,
         filePath,
         fileSize,
-        mimeType: file.type,
+        mimeType,
         categoryId:
           typeof categoryId === 'string' && categoryId.trim()
             ? categoryId.trim()
@@ -206,7 +206,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     // Background: transcription audio/vidéo via Whisper local
     if (transcribable) {
-      transcribeAudioVideo(filePath, file.type).then(async (text) => {
+      transcribeAudioVideo(filePath, mimeType).then(async (text) => {
         if (text) {
           await prisma.document.update({
             where: { id: document.id },
