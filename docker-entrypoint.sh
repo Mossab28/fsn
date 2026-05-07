@@ -7,27 +7,34 @@ echo "=== FSN Platform - Starting ==="
 echo "Running Prisma migrations..."
 npx prisma migrate deploy 2>&1 || echo "Migration warning (may be first run)"
 
-# Seed if DB is empty
+# Seed if DB is empty (using better-sqlite3 directly, works in standalone)
 echo "Checking seed..."
 node -e "
-const { PrismaClient } = require('./src/generated/prisma/client');
-const { PrismaBetterSqlite3 } = require('@prisma/adapter-better-sqlite3');
-const path = require('path');
-const adapter = new PrismaBetterSqlite3({ url: 'file:' + path.join(process.cwd(), 'prisma', 'dev.db') });
-const prisma = new PrismaClient({ adapter });
-prisma.user.count().then(c => {
-  if (c === 0) {
-    console.log('No users found, seeding...');
-    const bcrypt = require('bcryptjs');
-    bcrypt.hash('admin2026!', 10).then(hash => {
-      prisma.user.create({ data: { email: 'admin@fsn.fr', password: hash, name: 'Administrateur FSN', role: 'ADMIN' }})
-        .then(() => { console.log('Admin seeded'); process.exit(0); });
-    });
-  } else {
-    console.log('DB has ' + c + ' users, skip seed');
-    process.exit(0);
+const Database = require('better-sqlite3');
+const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
+const db = new Database('prisma/dev.db');
+const count = db.prepare('SELECT COUNT(*) as c FROM User').get().c;
+if (count === 0) {
+  console.log('No users, seeding...');
+  const now = new Date().toISOString();
+  const users = [
+    ['admin@fsn.fr', 'Admin2026!', 'Administrateur FSN', 'ADMIN'],
+    ['membre@fsn.fr', 'Membre2026!', 'Marie Membre', 'MEMBER'],
+    ['lecteur@fsn.fr', 'Lecteur2026!', 'Leo Lecteur', 'READER'],
+  ];
+  const stmt = db.prepare('INSERT INTO User (id, email, password, name, role, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?)');
+  for (const [email, pass, name, role] of users) {
+    const hash = bcrypt.hashSync(pass, 10);
+    const id = crypto.randomUUID().replace(/-/g, '').slice(0, 25);
+    stmt.run(id, email, hash, name, role, now, now);
+    console.log('  Created:', email, '(' + role + ')');
   }
-}).catch(e => { console.error(e); process.exit(0); });
+  console.log('Seed done!');
+} else {
+  console.log('DB has ' + count + ' users, skip seed');
+}
+db.close();
 " 2>&1 || echo "Seed check done"
 
 echo "Starting Next.js server..."
