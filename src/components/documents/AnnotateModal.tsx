@@ -103,39 +103,32 @@ export function AnnotateModal({
             style={{
               position: 'fixed',
               inset: 0,
-              background: 'rgba(0,0,0,0.6)',
-              backdropFilter: 'blur(4px)',
+              background: 'rgba(0,0,0,0.4)',
+              backdropFilter: 'blur(2px)',
               zIndex: 100,
             }}
           />
-          <div
+          <motion.div
+            initial={{ x: '100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '100%' }}
+            transition={{ type: 'spring', damping: 28, stiffness: 280 }}
             style={{
               position: 'fixed',
-              inset: 0,
+              top: 0,
+              right: 0,
+              bottom: 0,
+              width: '100%',
+              maxWidth: '480px',
+              background: 'var(--bg-surface)',
+              borderLeft: '1px solid var(--border)',
+              boxShadow: 'var(--shadow-lg)',
               zIndex: 101,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              pointerEvents: 'none',
-              padding: '20px',
+              overflow: 'auto',
+              padding: '28px',
             }}
           >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              transition={{ duration: 0.2 }}
-              style={{
-                pointerEvents: 'auto',
-                background: 'var(--bg-surface)',
-                border: '1px solid var(--border)',
-                borderRadius: 'var(--radius-xl)',
-                padding: '28px',
-                width: '100%',
-                maxWidth: '520px',
-                boxShadow: 'var(--shadow-lg)',
-              }}
-            >
+            <div style={{ width: '100%' }}>
               {/* Header */}
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px', marginBottom: '20px' }}>
                 <div
@@ -338,8 +331,8 @@ export function AnnotateModal({
                   </pre>
                 </div>
               )}
-            </motion.div>
-          </div>
+            </div>
+          </motion.div>
         </>
       )}
     </AnimatePresence>
