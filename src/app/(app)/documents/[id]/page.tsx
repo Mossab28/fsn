@@ -179,6 +179,9 @@ export default function DocumentDetailPage() {
   const fileType = getFileTypeConfig(document.mimeType)
   const isImage = document.mimeType.startsWith('image/')
   const isPdf = document.mimeType === 'application/pdf'
+  const isText = document.mimeType.startsWith('text/')
+  const isVideo = document.mimeType.startsWith('video/')
+  const isAudio = document.mimeType.startsWith('audio/')
   const tags = parseTags(document.tags)
   const statusColor = STATUS_COLORS[document.status] || '#9CA3AF'
   const statusLabel = STATUS_LABELS[document.status] || document.status
@@ -312,7 +315,71 @@ export default function DocumentDetailPage() {
                 />
               )}
 
-              {!isPdf && !isImage && (
+              {isText && (document as unknown as { textContent?: string }).textContent && (
+                <pre
+                  style={{
+                    width: '100%',
+                    maxHeight: '500px',
+                    overflow: 'auto',
+                    padding: '20px',
+                    margin: 0,
+                    fontFamily: 'var(--font-body)',
+                    fontSize: '13px',
+                    lineHeight: 1.7,
+                    color: 'var(--text-primary)',
+                    whiteSpace: 'pre-wrap',
+                    wordBreak: 'break-word',
+                    background: 'var(--bg-raised)',
+                    borderRadius: 'var(--radius-md)',
+                  }}
+                >
+                  {(document as unknown as { textContent: string }).textContent}
+                </pre>
+              )}
+
+              {isVideo && (
+                <video
+                  src={`/api/documents/${document.id}/download`}
+                  controls
+                  style={{
+                    width: '100%',
+                    maxHeight: '500px',
+                    borderRadius: 'var(--radius-md)',
+                    background: '#000',
+                  }}
+                >
+                  Votre navigateur ne supporte pas la lecture video.
+                </video>
+              )}
+
+              {isAudio && (
+                <div style={{ width: '100%', padding: '40px 0', textAlign: 'center' }}>
+                  <div
+                    style={{
+                      width: '80px',
+                      height: '80px',
+                      borderRadius: '50%',
+                      background: fileType.bgColor,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: fileType.color,
+                      margin: '0 auto 20px',
+                    }}
+                  >
+                    <FileIcon mimeType={document.mimeType} size={36} />
+                  </div>
+                  <audio
+                    src={`/api/documents/${document.id}/download`}
+                    controls
+                    style={{ width: '100%', maxWidth: '400px' }}
+                  >
+                    Votre navigateur ne supporte pas la lecture audio.
+                  </audio>
+                </div>
+              )}
+
+              {!isPdf && !isImage && !isText && !isVideo && !isAudio && (
                 <div
                   style={{
                     display: 'flex',
