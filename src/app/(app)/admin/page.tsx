@@ -806,6 +806,13 @@ const ACTION_CONFIG: Record<string, { label: string; icon: React.ReactNode; colo
   USER_DELETE: { label: 'Suppression utilisateur', icon: <UserMinus size={14} />, color: 'var(--red)' },
   CATEGORY_CREATE: { label: 'Création catégorie', icon: <FolderPlus size={14} />, color: '#3B82F6' },
   CATEGORY_DELETE: { label: 'Suppression catégorie', icon: <Trash2 size={14} />, color: 'var(--red)' },
+  DOCUMENT_VERSION_UPLOAD: { label: 'Nouvelle version', icon: <Upload size={14} />, color: '#8B5CF6' },
+  DOCUMENT_STATUS_CHANGE: { label: 'Changement de statut', icon: <FilePenLine size={14} />, color: 'var(--amber)' },
+  DOCUMENT_ARCHIVE: { label: 'Archivage', icon: <Trash2 size={14} />, color: 'var(--text-tertiary)' },
+  WIKI_ANNOTATION_UPLOAD: { label: 'Annotation document', icon: <FilePenLine size={14} />, color: '#F59E0B' },
+  WIKI_CONTRIBUTION: { label: 'Contribution wiki', icon: <Edit3 size={14} />, color: '#3B82F6' },
+  USER_GROUP_ASSIGN: { label: 'Affectation groupe', icon: <UserPlus size={14} />, color: 'var(--text-secondary)' },
+  FOLDER_CREATE: { label: 'Création dossier', icon: <FolderPlus size={14} />, color: '#3B82F6' },
 }
 
 function ActivityLogsTab() {

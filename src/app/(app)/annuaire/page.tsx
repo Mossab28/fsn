@@ -61,6 +61,10 @@ const ACTION_LABELS: Record<string, string> = {
   USER_DELETE: 'Suppression utilisateur',
   CATEGORY_CREATE: 'Creation categorie',
   CATEGORY_DELETE: 'Suppression categorie',
+  WIKI_ANNOTATION_UPLOAD: 'Annotation document',
+  WIKI_CONTRIBUTION: 'Contribution wiki',
+  USER_GROUP_ASSIGN: 'Affectation groupe',
+  FOLDER_CREATE: 'Creation dossier',
 }
 
 const ROLE_CONFIG: Record<string, { label: string; variant: 'amber' | 'blue' | 'default' }> = {
