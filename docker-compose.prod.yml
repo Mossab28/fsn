@@ -4,11 +4,11 @@ services:
     container_name: fsn-platform
     restart: unless-stopped
     ports:
-      - "4000:3000"
+      - "4200:3000"
     environment:
       - NODE_ENV=production
       - NEXTAUTH_SECRET=fsn-prod-secret-2026-change-me
-      - NEXTAUTH_URL=http://212.227.88.180:4000
+      - NEXTAUTH_URL=http://212.227.88.180:4200
       - UPLOAD_DIR=/app/uploads
     volumes:
       - fsn-uploads:/app/uploads

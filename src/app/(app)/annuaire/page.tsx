@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { redirect } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { Search, Users, Filter } from 'lucide-react'
+import { Search, Users, Filter, Clock, FileText, Activity } from 'lucide-react'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Input } from '@/components/ui/Input'
 import { Badge } from '@/components/ui/Badge'
@@ -19,6 +19,8 @@ interface DirectoryUser {
   groupId: string | null
   createdAt: string
   group: { id: string; name: string; color: string | null } | null
+  documentsCount?: number
+  lastLogin?: string | null
 }
 
 interface DirectoryResponse {
@@ -26,6 +28,39 @@ interface DirectoryResponse {
   grouped: Record<string, DirectoryUser[]>
   ungrouped: DirectoryUser[]
   total: number
+}
+
+interface ActivityLogEntry {
+  id: string
+  userId: string
+  action: string
+  entityType: string
+  entityId: string | null
+  entityName: string | null
+  createdAt: string
+  user: { id: string; name: string; email: string; role: string }
+}
+
+interface ActivityLogsResponse {
+  data: ActivityLogEntry[]
+  total: number
+}
+
+const ACTION_LABELS: Record<string, string> = {
+  LOGIN: 'Connexion',
+  LOGOUT: 'Deconnexion',
+  DOCUMENT_UPLOAD: 'Upload document',
+  DOCUMENT_DOWNLOAD: 'Telechargement',
+  DOCUMENT_DELETE: 'Suppression document',
+  DOCUMENT_UPDATE: 'Mise a jour document',
+  DOCUMENT_VERSION_UPLOAD: 'Nouvelle version',
+  DOCUMENT_STATUS_CHANGE: 'Changement de statut',
+  DOCUMENT_ARCHIVE: 'Archivage',
+  USER_CREATE: 'Creation utilisateur',
+  USER_UPDATE: 'Mise a jour utilisateur',
+  USER_DELETE: 'Suppression utilisateur',
+  CATEGORY_CREATE: 'Creation categorie',
+  CATEGORY_DELETE: 'Suppression categorie',
 }
 
 const ROLE_CONFIG: Record<string, { label: string; variant: 'amber' | 'blue' | 'default' }> = {
@@ -41,6 +76,24 @@ export default function AnnuairePage() {
   const [search, setSearch] = useState('')
   const [selectedGroup, setSelectedGroup] = useState<string>('')
   const [groups, setGroups] = useState<{ id: string; name: string; color: string | null }[]>([])
+  const [activityLogs, setActivityLogs] = useState<ActivityLogEntry[]>([])
+  const [logsLoading, setLogsLoading] = useState(false)
+
+  const isAdmin = session?.user?.role === 'ADMIN'
+
+  // Fetch activity logs for admin
+  useEffect(() => {
+    if (!isAdmin) return
+    setLogsLoading(true)
+    fetch('/api/admin/logs?pageSize=10')
+      .then((res) => {
+        if (!res.ok) throw new Error('Erreur')
+        return res.json()
+      })
+      .then((data: ActivityLogsResponse) => setActivityLogs(data.data))
+      .catch(() => setActivityLogs([]))
+      .finally(() => setLogsLoading(false))
+  }, [isAdmin])
 
   const loadDirectory = useCallback(async () => {
     setIsLoading(true)
@@ -252,10 +305,135 @@ export default function AnnuairePage() {
                       </span>
                     )}
                   </div>
+
+                  {/* Admin-only extra info */}
+                  {isAdmin && (
+                    <div style={{
+                      display: 'flex',
+                      gap: '16px',
+                      paddingTop: '10px',
+                      borderTop: '1px solid var(--border)',
+                      fontSize: '11px',
+                      fontFamily: 'var(--font-body)',
+                      color: 'var(--text-tertiary)',
+                    }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                        <Clock size={11} />
+                        {user.lastLogin
+                          ? new Date(user.lastLogin).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })
+                          : 'Jamais connecte'}
+                      </span>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                        <FileText size={11} />
+                        {user.documentsCount ?? 0} document{(user.documentsCount ?? 0) !== 1 ? 's' : ''}
+                      </span>
+                    </div>
+                  )}
                 </motion.div>
               )
             })}
           </div>
+        )}
+
+        {/* Admin-only activity logs section */}
+        {isAdmin && (
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.15 }}
+            style={{ marginTop: '32px' }}
+          >
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              marginBottom: '16px',
+              fontFamily: 'var(--font-display)',
+              fontSize: '15px',
+              fontWeight: 600,
+              color: 'var(--text-primary)',
+              letterSpacing: '-0.01em',
+            }}>
+              <Activity size={16} />
+              Activite recente
+            </div>
+
+            {logsLoading ? (
+              <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}>
+                <Spinner size="md" />
+              </div>
+            ) : activityLogs.length === 0 ? (
+              <p style={{
+                fontFamily: 'var(--font-body)',
+                fontSize: '13px',
+                color: 'var(--text-tertiary)',
+                textAlign: 'center',
+                padding: '32px 0',
+              }}>
+                Aucune activite recente
+              </p>
+            ) : (
+              <div style={{
+                background: 'var(--bg-surface)',
+                border: '1px solid var(--border)',
+                borderRadius: 'var(--radius-lg)',
+                overflow: 'hidden',
+              }}>
+                <table style={{
+                  width: '100%',
+                  borderCollapse: 'collapse',
+                  fontFamily: 'var(--font-body)',
+                  fontSize: '12px',
+                }}>
+                  <thead>
+                    <tr style={{
+                      borderBottom: '1px solid var(--border)',
+                      background: 'var(--bg-raised)',
+                    }}>
+                      <th style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                        Date
+                      </th>
+                      <th style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                        Utilisateur
+                      </th>
+                      <th style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                        Action
+                      </th>
+                      <th style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                        Element
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {activityLogs.map((log) => (
+                      <tr
+                        key={log.id}
+                        style={{ borderBottom: '1px solid var(--border)' }}
+                      >
+                        <td style={{ padding: '10px 14px', color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>
+                          {new Date(log.createdAt).toLocaleDateString('fr-FR', {
+                            day: 'numeric',
+                            month: 'short',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </td>
+                        <td style={{ padding: '10px 14px', color: 'var(--text-primary)', fontWeight: 500 }}>
+                          {log.user.name}
+                        </td>
+                        <td style={{ padding: '10px 14px', color: 'var(--text-secondary)' }}>
+                          {ACTION_LABELS[log.action] ?? log.action}
+                        </td>
+                        <td style={{ padding: '10px 14px', color: 'var(--text-tertiary)' }}>
+                          {log.entityName ?? '—'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </motion.div>
         )}
       </div>
     </>

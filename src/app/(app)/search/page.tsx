@@ -301,7 +301,26 @@ export default function SearchPage() {
   const showingAI = aiResults !== null
 
   return (
-    <div style={{ padding: '0 0 60px' }}>
+    <div className="search-page" style={{ padding: '0 0 60px' }}>
+      {/* Remove browser default search input styling */}
+      <style>{`
+        input[type="search"]::-webkit-search-decoration,
+        input[type="search"]::-webkit-search-cancel-button,
+        input[type="search"]::-webkit-search-results-button,
+        input[type="search"]::-webkit-search-results-decoration {
+          -webkit-appearance: none;
+        }
+        input[type="search"] {
+          -webkit-appearance: none;
+          -moz-appearance: none;
+          appearance: none;
+        }
+        /* Remove default focus outlines on search page buttons (custom focus styles used instead) */
+        .search-page button:focus-visible,
+        .search-page select:focus-visible {
+          outline: none;
+        }
+      `}</style>
       {/* Hero search section */}
       <motion.div
         initial={{ opacity: 0, y: -16 }}

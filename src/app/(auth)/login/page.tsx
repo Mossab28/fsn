@@ -587,7 +587,7 @@ export default function LoginPage() {
             </motion.button>
           </form>
 
-          {/* Demo credentials */}
+          {/* Contact admin for access */}
           <div
             style={{
               marginTop: '32px',
@@ -595,6 +595,7 @@ export default function LoginPage() {
               background: 'var(--bg-raised)',
               border: '1px solid var(--border)',
               borderRadius: 'var(--radius-md)',
+              textAlign: 'center',
             }}
           >
             <p
@@ -609,10 +610,10 @@ export default function LoginPage() {
             >
               Acces demo
             </p>
-            <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', fontFamily: 'monospace' }}>
+            <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', fontFamily: 'monospace', margin: 0 }}>
               admin@fsn.fr
               <span style={{ color: 'var(--border)', margin: '0 6px' }}>/</span>
-              admin123
+              Admin2026!
             </p>
           </div>
 

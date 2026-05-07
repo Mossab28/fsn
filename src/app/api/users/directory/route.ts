@@ -9,6 +9,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  const isAdmin = session.user.role === 'ADMIN'
+
   try {
     const { searchParams } = new URL(request.url)
     const search = searchParams.get('search')?.trim() ?? ''
@@ -38,15 +40,52 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
             color: true,
           },
         },
+        ...(isAdmin
+          ? {
+              _count: { select: { documents: true } },
+            }
+          : {}),
       },
       orderBy: { name: 'asc' },
     })
 
-    // Group users by group name
-    const grouped: Record<string, typeof users> = {}
-    const ungrouped: typeof users = []
+    // For admin users, fetch last login date per user
+    let lastLoginMap: Record<string, string> = {}
+    if (isAdmin) {
+      const userIds = users.map((u) => u.id)
+      const loginLogs = await prisma.activityLog.findMany({
+        where: {
+          userId: { in: userIds },
+          action: 'LOGIN',
+        },
+        orderBy: { createdAt: 'desc' },
+        select: {
+          userId: true,
+          createdAt: true,
+        },
+      })
+      // Keep only the most recent login per user
+      for (const log of loginLogs) {
+        if (!lastLoginMap[log.userId]) {
+          lastLoginMap[log.userId] = log.createdAt.toISOString()
+        }
+      }
+    }
 
-    for (const user of users) {
+    // Enrich users with admin-only fields
+    const enrichedUsers = isAdmin
+      ? users.map((u) => ({
+          ...u,
+          documentsCount: ('_count' in u) ? (u as { _count: { documents: number } })._count.documents : 0,
+          lastLogin: lastLoginMap[u.id] ?? null,
+        }))
+      : users
+
+    // Group users by group name
+    const grouped: Record<string, typeof enrichedUsers> = {}
+    const ungrouped: typeof enrichedUsers = []
+
+    for (const user of enrichedUsers) {
       if (user.group) {
         const groupName = user.group.name
         if (!grouped[groupName]) {
@@ -59,10 +98,10 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     }
 
     return NextResponse.json({
-      users,
+      users: enrichedUsers,
       grouped,
       ungrouped,
-      total: users.length,
+      total: enrichedUsers.length,
     })
   } catch (error) {
     console.error('GET /api/users/directory error:', error)

@@ -159,6 +159,18 @@ export function ImportZipModal({ open, onOpenChange, currentFolderId, onSuccess 
             }}
           />
 
+          {/* Modal centering wrapper */}
+          <div
+            style={{
+              position: 'fixed',
+              inset: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 51,
+              pointerEvents: 'none',
+            }}
+          >
           {/* Modal */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -166,17 +178,13 @@ export function ImportZipModal({ open, onOpenChange, currentFolderId, onSuccess 
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ duration: 0.2 }}
             style={{
-              position: 'fixed',
-              top: '50%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)',
+              pointerEvents: 'auto',
               background: 'var(--bg-surface)',
               border: '1px solid var(--border)',
               borderRadius: 'var(--radius-xl)',
               padding: '28px',
               width: '100%',
               maxWidth: '520px',
-              zIndex: 51,
               boxShadow: 'var(--shadow-lg)',
               maxHeight: '90vh',
               overflowY: 'auto',
@@ -565,6 +573,7 @@ export function ImportZipModal({ open, onOpenChange, currentFolderId, onSuccess 
               )}
             </div>
           </motion.div>
+          </div>
         </>
       )}
     </AnimatePresence>
