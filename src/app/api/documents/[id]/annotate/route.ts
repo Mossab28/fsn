@@ -2,9 +2,17 @@ import { getServerSession } from 'next-auth'
 import { NextRequest, NextResponse } from 'next/server'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { saveFile } from '@/lib/file-upload'
+import { saveFile, deleteFile } from '@/lib/file-upload'
 import { extractTextContent } from '@/lib/text-extractor'
 import { logActivity, getIpFromRequest } from '@/lib/activity-logger'
+
+const MAX_VERSIONS_PER_DOCUMENT = 3
+
+function nextVersionNumber(current: string): string {
+  // "1.0" → "1.1", "1.1" → "1.2", etc.
+  const [maj, min] = current.split('.').map((n) => parseInt(n, 10) || 0)
+  return `${maj}.${min + 1}`
+}
 
 type RouteContext = { params: Promise<{ id: string }> }
 
@@ -142,7 +150,7 @@ export async function POST(
     // The "Fichier modifié par X" header is rendered by the frontend based on type=ANNOTATION
     const content = typeof note === 'string' && note.trim() ? note.trim() : ''
 
-    // Create the contribution with the file path stored in metadata
+    // Create the contribution (the user note + visible in Contributions tab)
     const contribution = await prisma.wikiContribution.create({
       data: {
         documentId: id,
@@ -155,6 +163,50 @@ export async function POST(
         user: { select: { id: true, name: true, email: true, role: true } },
       },
     })
+
+    // Also create a DocumentVersion entry so the file is accessible in Versions tab
+    // Compute next version number based on existing versions
+    const latestVersion = await prisma.documentVersion.findFirst({
+      where: { documentId: id },
+      orderBy: { createdAt: 'desc' },
+    })
+    const baseVersion = latestVersion?.version ?? document.currentVersion ?? '1.0'
+    const newVersionNumber = nextVersionNumber(baseVersion)
+
+    const changelog = content
+      ? `Annotation : ${content.slice(0, 100)}${content.length > 100 ? '…' : ''}`
+      : `Annotation par ${userExists.name}`
+
+    await prisma.documentVersion.create({
+      data: {
+        documentId: id,
+        version: newVersionNumber,
+        type: 'MINOR',
+        filename: file.name,
+        storedName: saved.storedName,
+        filePath: saved.filePath,
+        fileSize: saved.fileSize,
+        changelog,
+        uploadedBy: session.user.id,
+      },
+    })
+
+    // Rolling window: keep only MAX_VERSIONS_PER_DOCUMENT (delete oldest beyond)
+    const allVersions = await prisma.documentVersion.findMany({
+      where: { documentId: id },
+      orderBy: { createdAt: 'desc' },
+    })
+    if (allVersions.length > MAX_VERSIONS_PER_DOCUMENT) {
+      const toDelete = allVersions.slice(MAX_VERSIONS_PER_DOCUMENT)
+      for (const v of toDelete) {
+        await prisma.documentVersion.delete({ where: { id: v.id } })
+        try {
+          await deleteFile(v.filePath)
+        } catch {
+          // file may already be missing — ignore
+        }
+      }
+    }
 
     // Log activity
     await logActivity({
