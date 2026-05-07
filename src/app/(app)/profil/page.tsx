@@ -166,7 +166,7 @@ export default function ProfilPage() {
       />
 
       <div style={{ flex: 1, overflow: 'auto', padding: '24px 32px' }}>
-        <div style={{ maxWidth: '800px', margin: '0 auto', width: '100%', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        <div style={{ maxWidth: '100%', width: '100%', display: 'flex', flexDirection: 'column', gap: '24px' }}>
 
           {/* Message banner */}
           <AnimatePresence>

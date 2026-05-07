@@ -329,11 +329,10 @@ export default function SearchPage() {
         style={{
           paddingTop: '40px',
           paddingBottom: '32px',
-          textAlign: 'center',
-          maxWidth: '900px',
-          margin: '0 auto',
-          paddingLeft: '24px',
-          paddingRight: '24px',
+          textAlign: 'left',
+          maxWidth: '100%',
+          paddingLeft: '32px',
+          paddingRight: '32px',
         }}
       >
         <h1
@@ -364,8 +363,7 @@ export default function SearchPage() {
         <div
           style={{
             position: 'relative',
-            maxWidth: '680px',
-            margin: '0 auto',
+            maxWidth: '780px',
           }}
         >
           <div style={{ display: 'flex', gap: '10px', alignItems: 'stretch' }}>
@@ -476,7 +474,7 @@ export default function SearchPage() {
           </div>
 
           {/* AI Search button */}
-          <div style={{ marginTop: '12px', display: 'flex', justifyContent: 'center' }}>
+          <div style={{ marginTop: '12px', display: 'flex', justifyContent: 'flex-start' }}>
             <motion.button
               onClick={handleAISearch}
               disabled={!query.trim() || isAISearching}
@@ -518,7 +516,7 @@ export default function SearchPage() {
       </motion.div>
 
       {/* Advanced Filters Panel */}
-      <div style={{ maxWidth: '680px', margin: '0 auto', padding: '0 24px' }}>
+      <div style={{ maxWidth: '780px', padding: '0 32px' }}>
         <button
           onClick={() => setAdvancedOpen(!advancedOpen)}
           style={{
