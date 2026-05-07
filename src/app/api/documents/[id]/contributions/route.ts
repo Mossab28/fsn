@@ -108,6 +108,15 @@ export async function POST(
       )
     }
 
+    // Verify user still exists (session may be stale after DB reseed)
+    const userExists = await prisma.user.findUnique({ where: { id: session.user.id } })
+    if (!userExists) {
+      return NextResponse.json(
+        { error: 'Session expirée. Veuillez vous reconnecter.' },
+        { status: 401 }
+      )
+    }
+
     const contribution = await prisma.wikiContribution.create({
       data: {
         documentId: id,
