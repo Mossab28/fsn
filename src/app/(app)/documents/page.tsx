@@ -667,16 +667,27 @@ export default function DocumentsPage() {
               onClick={() => !isDeleting && setDeleteId(null)}
               style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 50 }}
             />
+            <div
+              style={{
+                position: 'fixed',
+                inset: 0,
+                zIndex: 51,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                pointerEvents: 'none',
+                padding: '20px',
+              }}
+            >
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               style={{
-                position: 'fixed', top: '50%', left: '50%',
-                transform: 'translate(-50%, -50%)',
+                pointerEvents: 'auto',
                 background: 'var(--bg-surface)', border: '1px solid var(--border)',
                 borderRadius: 'var(--radius-xl)', padding: '28px',
-                width: '100%', maxWidth: '420px', zIndex: 51, boxShadow: 'var(--shadow-lg)',
+                width: '100%', maxWidth: '420px', boxShadow: 'var(--shadow-lg)',
               }}
             >
               <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start', marginBottom: '20px' }}>
@@ -719,6 +730,7 @@ export default function DocumentsPage() {
                 </Button>
               </div>
             </motion.div>
+            </div>
           </>
         )}
       </AnimatePresence>
