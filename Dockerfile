@@ -1,4 +1,6 @@
 FROM node:20-alpine AS base
+# ffmpeg pour la conversion audio/vidéo, build deps pour compiler whisper.cpp
+RUN apk add --no-cache ffmpeg make g++ git python3 bash
 
 # --- Dependencies ---
 FROM base AS deps

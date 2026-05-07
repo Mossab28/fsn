@@ -7,7 +7,7 @@ const nextConfig: NextConfig = {
       bodySizeLimit: '52mb',
     },
   },
-  serverExternalPackages: ['bcryptjs', 'pdf-parse', 'mammoth', 'adm-zip'],
+  serverExternalPackages: ['bcryptjs', 'pdf-parse', 'mammoth', 'adm-zip', 'nodejs-whisper'],
 }
 
 export default nextConfig

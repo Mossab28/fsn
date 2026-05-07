@@ -1,9 +1,9 @@
-import Anthropic from '@anthropic-ai/sdk'
-import { readFile } from 'fs/promises'
-import { extname } from 'path'
+import { extname, dirname, basename, join } from 'path'
+import { existsSync, unlinkSync } from 'fs'
+import { spawn } from 'child_process'
 
 const AUDIO_VIDEO_EXTENSIONS = new Set([
-  '.mp4', '.mp3', '.wav', '.webm', '.ogg', '.m4a', '.flac', '.aac',
+  '.mp4', '.mp3', '.wav', '.webm', '.ogg', '.m4a', '.flac', '.aac', '.mov', '.mkv',
 ])
 
 const AUDIO_VIDEO_MIMES = new Set([
@@ -21,78 +21,89 @@ export function isTranscribable(mimeType: string, filePath: string): boolean {
 }
 
 /**
- * Transcrit un fichier audio/vidéo en texte via l'API Claude.
- * Utilise l'encodage base64 pour envoyer le fichier audio.
- * Limite : fichiers de moins de 25 Mo pour l'envoi à l'API.
+ * Convertit un fichier audio/vidéo en WAV 16 kHz mono via ffmpeg
+ * (format requis par Whisper.cpp).
  */
-export async function transcribeAudioVideo(filePath: string, mimeType: string): Promise<string | null> {
-  const apiKey = process.env.ANTHROPIC_API_KEY
-  if (!apiKey) {
-    console.warn('ANTHROPIC_API_KEY non configurée — transcription ignorée')
-    return null
-  }
+function convertToWav(inputPath: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const wavPath = join(dirname(inputPath), basename(inputPath, extname(inputPath)) + '.wav')
+    const ffmpeg = spawn('ffmpeg', [
+      '-y',
+      '-i', inputPath,
+      '-ar', '16000',
+      '-ac', '1',
+      '-c:a', 'pcm_s16le',
+      wavPath,
+    ])
 
+    let stderr = ''
+    ffmpeg.stderr.on('data', (data) => { stderr += data.toString() })
+    ffmpeg.on('close', (code) => {
+      if (code === 0 && existsSync(wavPath)) {
+        resolve(wavPath)
+      } else {
+        reject(new Error(`ffmpeg failed (code ${code}): ${stderr.slice(-500)}`))
+      }
+    })
+    ffmpeg.on('error', reject)
+  })
+}
+
+/**
+ * Transcrit un fichier audio/vidéo en texte via Whisper.cpp tournant localement.
+ * Pas d'API externe, 100% offline.
+ *
+ * Modèle utilisé : "small" (multilingual, ~466 Mo).
+ * Téléchargé automatiquement à la première utilisation par nodejs-whisper.
+ */
+export async function transcribeAudioVideo(filePath: string, _mimeType: string): Promise<string | null> {
+  let wavPath: string | null = null
   try {
-    const buffer = await readFile(filePath)
+    // 1. Convert to WAV via ffmpeg (Whisper.cpp requires WAV 16kHz mono)
+    wavPath = await convertToWav(filePath)
 
-    // Limiter à 25 Mo pour l'API
-    if (buffer.length > 25 * 1024 * 1024) {
-      console.warn('Fichier trop volumineux pour la transcription automatique (> 25 Mo)')
+    // 2. Run Whisper.cpp via nodejs-whisper
+    const { nodewhisper } = await import('nodejs-whisper')
+
+    await nodewhisper(wavPath, {
+      modelName: process.env.WHISPER_MODEL ?? 'small',
+      autoDownloadModelName: process.env.WHISPER_MODEL ?? 'small',
+      removeWavFileAfterTranscription: false,
+      withCuda: false,
+      whisperOptions: {
+        outputInText: true,
+        outputInJson: false,
+        outputInSrt: false,
+        outputInVtt: false,
+        translateToEnglish: false,
+        wordTimestamps: false,
+        timestamps_length: 0,
+        splitOnWord: false,
+        language: 'fr',
+      },
+    })
+
+    // 3. Read the generated .txt file
+    const txtPath = wavPath.replace(/\.wav$/, '.txt')
+    if (!existsSync(txtPath)) {
+      console.warn(`[Whisper] No txt output found at ${txtPath}`)
       return null
     }
 
-    const base64Data = buffer.toString('base64')
+    const fs = await import('fs/promises')
+    const text = await fs.readFile(txtPath, 'utf-8')
 
-    // Déterminer le type média pour Claude
-    const mediaType = resolveMediaType(mimeType, filePath)
+    // Cleanup the .txt output (we keep the original audio/video file)
+    try { unlinkSync(txtPath) } catch { /* ignore */ }
 
-    const client = new Anthropic({ apiKey })
-
-    const message = await client.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 16000,
-      messages: [
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'document',
-              source: {
-                type: 'base64',
-                media_type: mediaType as 'application/pdf',
-                data: base64Data,
-              },
-            },
-            {
-              type: 'text',
-              text: 'Transcris intégralement le contenu audio/vidéo de ce fichier en français. Retourne uniquement la transcription textuelle, sans commentaires ni mise en forme. Si le fichier contient plusieurs intervenants, indique les changements de locuteur.',
-            },
-          ],
-        },
-      ],
-    })
-
-    const textBlock = message.content.find((b) => b.type === 'text')
-    return textBlock ? textBlock.text : null
+    return text.trim() || null
   } catch (error) {
-    console.error('Erreur transcription audio/vidéo:', error)
+    console.error('[Whisper] Transcription error:', error)
     return null
+  } finally {
+    // Always cleanup the temporary WAV file
+    if (wavPath && existsSync(wavPath)) {
+      try { unlinkSync(wavPath) } catch { /* ignore */ }
+    }
   }
-}
-
-function resolveMediaType(mimeType: string, filePath: string): string {
-  if (AUDIO_VIDEO_MIMES.has(mimeType)) return mimeType
-
-  const ext = extname(filePath).toLowerCase()
-  const mapping: Record<string, string> = {
-    '.mp4': 'video/mp4',
-    '.mp3': 'audio/mpeg',
-    '.wav': 'audio/wav',
-    '.webm': 'video/webm',
-    '.ogg': 'audio/ogg',
-    '.m4a': 'audio/mp4',
-    '.flac': 'audio/flac',
-    '.aac': 'audio/aac',
-  }
-  return mapping[ext] || 'application/octet-stream'
 }

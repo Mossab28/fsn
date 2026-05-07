@@ -24,7 +24,8 @@ import { PageHeader } from '@/components/layout/PageHeader'
 import { Button } from '@/components/ui/Button'
 import { DocumentGrid } from '@/components/documents/DocumentGrid'
 import { ImportZipModal } from '@/components/documents/ImportZipModal'
-import type { DocumentWithRelations } from '@/types'
+import { UploadModal } from '@/components/documents/UploadModal'
+import type { DocumentWithRelations, Category } from '@/types'
 
 type ViewMode = 'grid' | 'list'
 
@@ -74,6 +75,8 @@ export default function DocumentsPage() {
 
   // ZIP import
   const [showZipImport, setShowZipImport] = useState(false)
+  const [showUpload, setShowUpload] = useState(false)
+  const [categories, setCategories] = useState<Category[]>([])
 
   // Delete confirm
   const [deleteId, setDeleteId] = useState<string | null>(null)
@@ -116,6 +119,14 @@ export default function DocumentsPage() {
 
     setIsLoading(false)
   }, [currentFolderId, searchQuery])
+
+  // Fetch categories once for the upload modal
+  useEffect(() => {
+    fetch('/api/categories')
+      .then((r) => r.ok ? r.json() : [])
+      .then((data) => setCategories(Array.isArray(data) ? data : []))
+      .catch(() => {})
+  }, [])
 
   useEffect(() => {
     const timer = setTimeout(() => fetchContent(), 200)
@@ -226,7 +237,7 @@ export default function DocumentsPage() {
               <Button
                 variant="primary"
                 icon={<Upload size={15} />}
-                onClick={() => alert('Fonctionnalité bientôt disponible')}
+                onClick={() => setShowUpload(true)}
               >
                 Ajouter
               </Button>
@@ -717,6 +728,14 @@ export default function DocumentsPage() {
         open={showZipImport}
         onOpenChange={setShowZipImport}
         currentFolderId={currentFolderId}
+        onSuccess={fetchContent}
+      />
+
+      {/* Single file upload modal */}
+      <UploadModal
+        open={showUpload}
+        onOpenChange={setShowUpload}
+        categories={categories}
         onSuccess={fetchContent}
       />
     </>

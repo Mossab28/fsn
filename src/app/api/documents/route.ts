@@ -152,13 +152,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     // Extraction du contenu textuel pour indexation
     let textContent: string | null = null
-    if (isTranscribable(file.type, filePath)) {
-      // Transcription audio/vidéo (asynchrone, fire-and-forget si échec)
-      textContent = await transcribeAudioVideo(filePath, file.type)
-    } else {
-      // Extraction texte PDF/DOCX/TXT
+    const transcribable = isTranscribable(file.type, filePath)
+    if (!transcribable) {
+      // PDF/DOCX/TXT : extraction synchrone (rapide)
       textContent = await extractTextContent(filePath, file.type)
     }
+    // Pour audio/vidéo : transcription asynchrone (Whisper local prend du temps)
+    // → on lance après création du document, en background
 
     const document = await prisma.document.create({
       data: {
@@ -203,6 +203,21 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       entityName: document.title,
       ipAddress: getIpFromRequest(request),
     })
+
+    // Background: transcription audio/vidéo via Whisper local
+    if (transcribable) {
+      transcribeAudioVideo(filePath, file.type).then(async (text) => {
+        if (text) {
+          await prisma.document.update({
+            where: { id: document.id },
+            data: { textContent: text },
+          })
+          console.log(`[Whisper] Transcription terminée pour document ${document.id}`)
+        }
+      }).catch((err) => {
+        console.error('[Whisper] Erreur transcription background:', err)
+      })
+    }
 
     return NextResponse.json(document, { status: 201 })
   } catch (error) {
