@@ -138,13 +138,9 @@ export async function POST(
       )
     }
 
-    // Build content with optional user note + diff summary
-    let content = ''
-    if (typeof note === 'string' && note.trim()) {
-      content = note.trim() + '\n\n---\n\n'
-    }
-    content += `📎 Fichier annoté : ${file.name}\n\n`
-    content += `📝 Modifications détectées :\n${diff.summary}`
+    // Content = just the user's note if provided, otherwise empty
+    // The "Fichier modifié par X" header is rendered by the frontend based on type=ANNOTATION
+    const content = typeof note === 'string' && note.trim() ? note.trim() : ''
 
     // Create the contribution with the file path stored in metadata
     const contribution = await prisma.wikiContribution.create({

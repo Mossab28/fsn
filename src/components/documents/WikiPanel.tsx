@@ -385,19 +385,51 @@ function ContributionCard({
           </div>
 
           {/* Content */}
-          <p
-            style={{
-              fontFamily: 'var(--font-body)',
-              fontSize: '13px',
-              color: 'var(--text-primary)',
-              margin: 0,
-              lineHeight: 1.6,
-              whiteSpace: 'pre-wrap',
-              wordBreak: 'break-word',
-            }}
-          >
-            {contribution.content}
-          </p>
+          {contribution.type === 'ANNOTATION' ? (
+            <div>
+              <p
+                style={{
+                  fontFamily: 'var(--font-body)',
+                  fontSize: '12px',
+                  color: 'var(--text-tertiary)',
+                  fontStyle: 'italic',
+                  margin: 0,
+                  lineHeight: 1.5,
+                }}
+              >
+                Document modifié{contribution.content ? ' :' : ''}
+              </p>
+              {contribution.content && (
+                <p
+                  style={{
+                    fontFamily: 'var(--font-body)',
+                    fontSize: '13px',
+                    color: 'var(--text-primary)',
+                    margin: '4px 0 0',
+                    lineHeight: 1.6,
+                    whiteSpace: 'pre-wrap',
+                    wordBreak: 'break-word',
+                  }}
+                >
+                  {contribution.content}
+                </p>
+              )}
+            </div>
+          ) : (
+            <p
+              style={{
+                fontFamily: 'var(--font-body)',
+                fontSize: '13px',
+                color: 'var(--text-primary)',
+                margin: 0,
+                lineHeight: 1.6,
+                whiteSpace: 'pre-wrap',
+                wordBreak: 'break-word',
+              }}
+            >
+              {contribution.content}
+            </p>
+          )}
 
           {/* Actions */}
           <div style={{ display: 'flex', gap: '6px', marginTop: '8px', flexWrap: 'wrap' }}>
