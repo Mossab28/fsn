@@ -164,34 +164,39 @@ export async function POST(
       },
     })
 
-    // Also create a DocumentVersion entry so the file is accessible in Versions tab
-    // Compute next version number based on existing versions
-    const latestVersion = await prisma.documentVersion.findFirst({
-      where: { documentId: id },
-      orderBy: { createdAt: 'desc' },
-    })
-    const baseVersion = latestVersion?.version ?? document.currentVersion ?? '1.0'
-    const newVersionNumber = nextVersionNumber(baseVersion)
-
-    const changelog = content
-      ? `Annotation : ${content.slice(0, 100)}${content.length > 100 ? '…' : ''}`
-      : `Annotation par ${userExists.name}`
-
+    // Step 1: Archive the CURRENT file as a DocumentVersion (before overwriting)
+    // The current file becomes the previous version
+    const previousVersionNumber = document.currentVersion ?? '1.0'
     await prisma.documentVersion.create({
       data: {
         documentId: id,
-        version: newVersionNumber,
+        version: previousVersionNumber,
         type: 'MINOR',
+        filename: document.filename,
+        storedName: document.storedName,
+        filePath: document.filePath,
+        fileSize: document.fileSize,
+        changelog: `Version ${previousVersionNumber} (avant annotation)`,
+        uploadedBy: document.uploadedBy,
+      },
+    })
+
+    // Step 2: Update the document to point to the NEW annotated file (becomes current)
+    const newVersionNumber = nextVersionNumber(previousVersionNumber)
+    await prisma.document.update({
+      where: { id },
+      data: {
         filename: file.name,
         storedName: saved.storedName,
         filePath: saved.filePath,
         fileSize: saved.fileSize,
-        changelog,
-        uploadedBy: session.user.id,
+        textContent: modifiedText,
+        currentVersion: newVersionNumber,
+        updatedAt: new Date(),
       },
     })
 
-    // Rolling window: keep only MAX_VERSIONS_PER_DOCUMENT (delete oldest beyond)
+    // Step 3: Rolling window — keep only MAX_VERSIONS_PER_DOCUMENT (delete oldest beyond)
     const allVersions = await prisma.documentVersion.findMany({
       where: { documentId: id },
       orderBy: { createdAt: 'desc' },
