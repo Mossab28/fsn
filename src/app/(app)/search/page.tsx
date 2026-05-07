@@ -890,8 +890,8 @@ export default function SearchPage() {
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.25 }}
             style={{
-              maxWidth: '680px',
-              margin: '0 auto 20px',
+              maxWidth: '780px',
+              margin: '0 0 20px',
               padding: '14px 20px',
               background: 'rgba(239, 68, 68, 0.08)',
               border: '1px solid rgba(239, 68, 68, 0.2)',
@@ -941,8 +941,8 @@ export default function SearchPage() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             style={{
-              maxWidth: '680px',
-              margin: '0 auto 24px',
+              maxWidth: '780px',
+              margin: '0 0 24px',
               padding: '40px 24px',
               background: 'linear-gradient(135deg, rgba(0, 201, 167, 0.04), rgba(0, 184, 153, 0.02))',
               border: '1px solid rgba(0, 201, 167, 0.15)',
@@ -1471,7 +1471,7 @@ export default function SearchPage() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3, delay: 0.1 }}
-            style={{ maxWidth: '900px', margin: '0 auto', padding: '0 24px' }}
+            style={{ maxWidth: '100%', padding: '0 32px' }}
           >
             <p
               style={{
