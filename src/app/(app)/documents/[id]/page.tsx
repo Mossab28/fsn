@@ -772,7 +772,7 @@ export default function DocumentDetailPage() {
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.15 }}
               >
-                <VersionHistoryPanel versions={versions} />
+                <VersionHistoryPanel versions={versions} documentId={documentId} />
               </motion.div>
             )}
           </AnimatePresence>
@@ -850,7 +850,7 @@ function MetadataRow({ icon, label, value }: { icon: React.ReactNode; label: str
 
 /* ─── Version History Panel ───────────────────────────────────────────── */
 
-function VersionHistoryPanel({ versions }: { versions: DocumentVersion[] }) {
+function VersionHistoryPanel({ versions, documentId }: { versions: DocumentVersion[]; documentId: string }) {
   if (versions.length === 0) {
     return (
       <div
@@ -904,6 +904,9 @@ function VersionHistoryPanel({ versions }: { versions: DocumentVersion[] }) {
         overflow: 'hidden',
       }}
     >
+      <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', fontSize: '11px', fontWeight: 600, color: 'var(--text-tertiary)', letterSpacing: '0.04em', textTransform: 'uppercase', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span>Historique des versions ({versions.length}/3)</span>
+      </div>
       {versions.map((version, index) => (
         <div
           key={version.id}
@@ -980,17 +983,36 @@ function VersionHistoryPanel({ versions }: { versions: DocumentVersion[] }) {
                 {version.changelog}
               </p>
             )}
-            <span
-              style={{
-                display: 'inline-block',
-                marginTop: '4px',
-                fontFamily: 'var(--font-body)',
-                fontSize: '11px',
-                color: 'var(--text-tertiary)',
-              }}
-            >
-              {version.filename} ({formatBytes(version.fileSize)})
-            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px', flexWrap: 'wrap' }}>
+              <span
+                style={{
+                  fontFamily: 'var(--font-body)',
+                  fontSize: '11px',
+                  color: 'var(--text-tertiary)',
+                }}
+              >
+                {version.filename} ({formatBytes(version.fileSize)})
+              </span>
+              <a
+                href={`/api/documents/${documentId}/versions/${version.id}/download`}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '4px 10px',
+                  background: 'var(--accent-dim)',
+                  color: 'var(--accent)',
+                  borderRadius: 'var(--radius-sm)',
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  textDecoration: 'none',
+                  border: '1px solid rgba(0, 168, 142, 0.25)',
+                }}
+              >
+                <Download size={11} />
+                Telecharger
+              </a>
+            </div>
           </div>
         </div>
       ))}
