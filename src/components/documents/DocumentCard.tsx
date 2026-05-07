@@ -171,7 +171,7 @@ export function DocumentCard({ document, onDelete }: DocumentCardProps) {
           {fileType.icon}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-          <DocumentStatusBadge status={document.status as DocumentStatus} />
+          {/* Status badge désactivé pour l'instant (workflow incomplet) */}
           {document.category && (
             <Badge variant="accent">{document.category.name}</Badge>
           )}

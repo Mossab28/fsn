@@ -588,66 +588,7 @@ export default function SearchPage() {
                   gap: '16px',
                 }}
               >
-                {/* Status multi-select */}
-                <div>
-                  <label
-                    style={{
-                      display: 'block',
-                      fontFamily: 'var(--font-body)',
-                      fontSize: '12px',
-                      fontWeight: 600,
-                      color: 'var(--text-secondary)',
-                      marginBottom: '8px',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.04em',
-                    }}
-                  >
-                    Statut
-                  </label>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                    {ALL_STATUSES.map((s) => {
-                      const isActive = selectedStatuses.includes(s)
-                      return (
-                        <button
-                          key={s}
-                          onClick={() => {
-                            if (isActive) {
-                              setSelectedStatuses(selectedStatuses.filter((st) => st !== s))
-                            } else {
-                              setSelectedStatuses([...selectedStatuses, s])
-                            }
-                          }}
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '6px',
-                            padding: '6px 12px',
-                            borderRadius: '9999px',
-                            background: isActive ? `${DOCUMENT_STATUS_COLORS[s]}18` : 'var(--bg-raised)',
-                            border: `1px solid ${isActive ? DOCUMENT_STATUS_COLORS[s] : 'var(--border)'}`,
-                            color: isActive ? DOCUMENT_STATUS_COLORS[s] : 'var(--text-secondary)',
-                            fontFamily: 'var(--font-body)',
-                            fontSize: '12px',
-                            fontWeight: 500,
-                            cursor: 'pointer',
-                            transition: 'all var(--transition)',
-                          }}
-                        >
-                          <span
-                            style={{
-                              width: '7px',
-                              height: '7px',
-                              borderRadius: '50%',
-                              background: DOCUMENT_STATUS_COLORS[s],
-                              flexShrink: 0,
-                            }}
-                          />
-                          {DOCUMENT_STATUS_LABELS[s]}
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
+                {/* Status multi-select désactivé pour l'instant */}
 
                 {/* Date range + Author row */}
                 <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
@@ -810,43 +751,6 @@ export default function SearchPage() {
                     </select>
                   </div>
 
-                  {/* Include archived toggle */}
-                  <div style={{ flex: '0 0 auto' }}>
-                    <label
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        padding: '8px 14px',
-                        background: includeArchived ? 'rgba(107, 114, 128, 0.1)' : 'var(--bg-raised)',
-                        border: `1px solid ${includeArchived ? '#6B7280' : 'var(--border)'}`,
-                        borderRadius: 'var(--radius-md)',
-                        cursor: 'pointer',
-                        transition: 'all var(--transition)',
-                      }}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={includeArchived}
-                        onChange={(e) => setIncludeArchived(e.target.checked)}
-                        style={{ display: 'none' }}
-                      />
-                      <Archive
-                        size={14}
-                        style={{ color: includeArchived ? '#6B7280' : 'var(--text-tertiary)' }}
-                      />
-                      <span
-                        style={{
-                          fontFamily: 'var(--font-body)',
-                          fontSize: '12px',
-                          fontWeight: 500,
-                          color: includeArchived ? 'var(--text-primary)' : 'var(--text-secondary)',
-                        }}
-                      >
-                        Inclure les archiv&#233;s
-                      </span>
-                    </label>
-                  </div>
                 </div>
 
                 {/* Reset advanced filters */}
@@ -1456,7 +1360,6 @@ export default function SearchPage() {
                 sortOrder={sortOrder}
                 onCategoryChange={handleCategoryChange}
                 onTypeChange={handleTypeChange}
-                onStatusChange={handleStatusChange}
                 onSortChange={handleSortChange}
                 onReset={handleReset}
                 documentCounts={documentCounts}
