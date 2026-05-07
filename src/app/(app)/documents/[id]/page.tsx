@@ -25,7 +25,6 @@ import { formatDistanceToNow } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { Badge } from '@/components/ui/Badge'
 import { WikiPanel } from '@/components/documents/WikiPanel'
-import { AnnotateModal } from '@/components/documents/AnnotateModal'
 import { formatBytes, formatDate, parseTags } from '@/lib/utils'
 import type {
   DocumentWithRelations,
@@ -97,8 +96,7 @@ export default function DocumentDetailPage() {
   const [sideTab, setSideTab] = useState<SideTab>('wiki')
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false)
   const [changingStatus, setChangingStatus] = useState(false)
-  const [showAnnotate, setShowAnnotate] = useState(false)
-  const [wikiRefreshKey, setWikiRefreshKey] = useState(0)
+  const [wikiRefreshKey] = useState(0)
 
   const isAdmin = session?.user?.role === 'ADMIN'
 
@@ -660,54 +658,28 @@ export default function DocumentDetailPage() {
             )}
           </div>
 
-          {/* Download + Annotate CTAs */}
-          <div style={{ display: 'flex', gap: '10px' }}>
-            <a
-              href={`/api/documents/${document.id}/download`}
-              style={{
-                flex: 1,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '10px',
-                padding: '13px 20px',
-                background: 'var(--accent)',
-                color: '#FFFFFF',
-                borderRadius: 'var(--radius-lg)',
-                fontFamily: 'var(--font-body)',
-                fontSize: '14px',
-                fontWeight: 700,
-                textDecoration: 'none',
-                letterSpacing: '-0.01em',
-              }}
-            >
-              <Download size={17} />
-              Telecharger
-            </a>
-            {(session.user.role === 'ADMIN' || session.user.role === 'MEMBER') && (
-              <button
-                onClick={() => setShowAnnotate(true)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px',
-                  padding: '13px 20px',
-                  background: 'transparent',
-                  color: 'var(--text-primary)',
-                  border: '1px solid var(--border)',
-                  borderRadius: 'var(--radius-lg)',
-                  fontFamily: 'var(--font-body)',
-                  fontSize: '14px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                }}
-              >
-                <Pencil size={15} />
-                Annoter
-              </button>
-            )}
-          </div>
+          {/* Download CTA */}
+          <a
+            href={`/api/documents/${document.id}/download`}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '10px',
+              padding: '13px 20px',
+              background: 'var(--accent)',
+              color: '#FFFFFF',
+              borderRadius: 'var(--radius-lg)',
+              fontFamily: 'var(--font-body)',
+              fontSize: '14px',
+              fontWeight: 700,
+              textDecoration: 'none',
+              letterSpacing: '-0.01em',
+            }}
+          >
+            <Download size={17} />
+            Telecharger le document
+          </a>
         </div>
 
         {/* RIGHT: Versions + Wiki tabs */}
@@ -782,6 +754,8 @@ export default function DocumentDetailPage() {
                 <WikiPanel
                   key={wikiRefreshKey}
                   documentId={documentId}
+                  documentTitle={document.title}
+                  documentMimeType={document.mimeType}
                   currentUser={{
                     id: session.user.id,
                     role: session.user.role,
@@ -813,18 +787,6 @@ export default function DocumentDetailPage() {
         />
       )}
 
-      {/* Annotate modal */}
-      <AnnotateModal
-        isOpen={showAnnotate}
-        onClose={() => setShowAnnotate(false)}
-        documentId={documentId}
-        documentTitle={document.title}
-        documentMimeType={document.mimeType}
-        onSuccess={() => {
-          setSideTab('wiki')
-          setWikiRefreshKey((k) => k + 1)
-        }}
-      />
     </div>
   )
 }
