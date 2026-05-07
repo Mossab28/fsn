@@ -45,15 +45,36 @@ function getFileIcon(mimeType: string, size = 24) {
 }
 
 const ACCEPTED_TYPES = {
+  // Documents
   'application/pdf': ['.pdf'],
   'application/msword': ['.doc'],
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
   'application/vnd.ms-excel': ['.xls'],
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
+  'application/vnd.ms-powerpoint': ['.ppt'],
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation': ['.pptx'],
+  // Texte
+  'text/plain': ['.txt'],
+  'text/csv': ['.csv'],
+  'text/html': ['.html', '.htm'],
+  'text/markdown': ['.md'],
+  // Images
   'image/jpeg': ['.jpg', '.jpeg'],
   'image/png': ['.png'],
   'image/gif': ['.gif'],
   'image/webp': ['.webp'],
+  'image/svg+xml': ['.svg'],
+  'image/tiff': ['.tiff', '.tif'],
+  // Vidéo
+  'video/mp4': ['.mp4'],
+  'video/webm': ['.webm'],
+  // Audio
+  'audio/mpeg': ['.mp3'],
+  'audio/wav': ['.wav'],
+  'audio/ogg': ['.ogg'],
+  'audio/mp4': ['.m4a'],
+  'audio/flac': ['.flac'],
+  'audio/aac': ['.aac'],
 }
 
 function slugFromFilename(filename: string): string {
