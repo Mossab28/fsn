@@ -165,10 +165,6 @@ export function WikiPanel({ documentId, currentUser }: WikiPanelProps) {
   return (
     <div
       style={{
-        background: 'var(--bg-surface)',
-        border: '1px solid var(--border)',
-        borderRadius: 'var(--radius-xl)',
-        overflow: 'hidden',
         display: 'flex',
         flexDirection: 'column',
       }}
@@ -177,8 +173,7 @@ export function WikiPanel({ documentId, currentUser }: WikiPanelProps) {
       <div
         style={{
           display: 'flex',
-          borderBottom: '1px solid var(--border)',
-          background: 'var(--bg-elevated)',
+          borderBottom: '2px solid var(--border)',
         }}
       >
         {TABS.map((tab) => (

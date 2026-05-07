@@ -18,10 +18,17 @@ function isoDate(dateStr) {
   return new Date(dateStr).toISOString();
 }
 
-// ─── Existing Users ───────────────────────────────────────────────────────
-const adminId  = '300c407fe99447f1baa4c9348';
-const membreId = '8e39fb460b3e4eaa98d4c3320';
-const lecteurId = '83b74fcb01d54edc8d0548659';
+// ─── Existing Users (read from DB) ────────────────────────────────────────
+const users = db.prepare("SELECT id, email FROM User").all();
+const userMap = {};
+for (const u of users) userMap[u.email] = u.id;
+const adminId = userMap['admin@fsn.fr'];
+const membreId = userMap['membre@fsn.fr'];
+const lecteurId = userMap['lecteur@fsn.fr'];
+if (!adminId || !membreId || !lecteurId) {
+  console.error('Missing users! Found:', Object.keys(userMap));
+  process.exit(1);
+}
 
 // ─── 1. Categories ────────────────────────────────────────────────────────
 const categories = [
@@ -38,14 +45,21 @@ const insertCategory = db.prepare(
 );
 
 const catMap = {};
-const insertCategories = db.transaction(() => {
-  for (const c of categories) {
-    insertCategory.run(c.id, c.name, c.slug, c.color, c.description, isoDate('2026-03-01'));
-    catMap[c.slug] = c.id;
-  }
-});
-insertCategories();
-console.log('Categories created:', categories.length);
+// Check if categories already exist
+const existingCats = db.prepare("SELECT id, slug FROM Category").all();
+if (existingCats.length > 0) {
+  for (const c of existingCats) catMap[c.slug] = c.id;
+  console.log('Categories already exist:', existingCats.length);
+} else {
+  const insertCategories = db.transaction(() => {
+    for (const c of categories) {
+      insertCategory.run(c.id, c.name, c.slug, c.color, c.description, isoDate('2026-03-01'));
+      catMap[c.slug] = c.id;
+    }
+  });
+  insertCategories();
+  console.log('Categories created:', categories.length);
+}
 
 // ─── 2. User Groups ──────────────────────────────────────────────────────
 const groups = [
@@ -60,15 +74,21 @@ const insertGroup = db.prepare(
 );
 
 const groupMap = {};
-const insertGroups = db.transaction(() => {
-  const now = isoDate('2026-03-01');
-  for (const g of groups) {
-    insertGroup.run(g.id, g.name, g.description, g.color, now, now);
-    groupMap[g.name] = g.id;
-  }
-});
-insertGroups();
-console.log('User groups created:', groups.length);
+const existingGroups = db.prepare("SELECT id, name FROM UserGroup").all();
+if (existingGroups.length > 0) {
+  for (const g of existingGroups) groupMap[g.name] = g.id;
+  console.log('Groups already exist:', existingGroups.length);
+} else {
+  const insertGroups = db.transaction(() => {
+    const now = isoDate('2026-03-01');
+    for (const g of groups) {
+      insertGroup.run(g.id, g.name, g.description, g.color, now, now);
+      groupMap[g.name] = g.id;
+    }
+  });
+  insertGroups();
+  console.log('User groups created:', groups.length);
+}
 
 // ─── 3. Assign users to groups ───────────────────────────────────────────
 const updateUserGroup = db.prepare(`UPDATE User SET groupId = ?, updatedAt = ? WHERE id = ?`);
@@ -104,8 +124,19 @@ const createFolders = db.transaction(() => {
     insertFolder.run(id, f.name, f.color, f.parent ? folderIds[f.parent] : null, ts, ts);
   }
 });
-createFolders();
-console.log('Folders created:', Object.keys(folderIds).length);
+const existingFolders = db.prepare("SELECT id, name FROM Folder").all();
+if (existingFolders.length > 0) {
+  // Map folder names to IDs — need to match keys
+  const nameToKey = { 'Réglementation': 'reglementation', 'Textes officiels': 'textes', 'Normes': 'normes', 'Projets': 'projets', 'Plateforme documentaire': 'plateforme', 'Transformation digitale': 'transfo', 'Formations': 'formations', 'Archives': 'archives' };
+  for (const f of existingFolders) {
+    const key = nameToKey[f.name];
+    if (key) folderIds[key] = f.id;
+  }
+  console.log('Folders already exist:', existingFolders.length);
+} else {
+  createFolders();
+  console.log('Folders created:', Object.keys(folderIds).length);
+}
 
 // ─── 5. Documents (with real files) ──────────────────────────────────────
 const uploadsDir = '/app/uploads';
@@ -552,6 +583,12 @@ const insertDoc = db.prepare(
 );
 
 const docIds = {};
+const existingDocCount = db.prepare("SELECT COUNT(*) as c FROM Document").get().c;
+if (existingDocCount > 0) {
+  console.log('Documents already exist:', existingDocCount, '- skipping seed');
+  db.close();
+  process.exit(0);
+}
 const createDocuments = db.transaction(() => {
   for (const d of docDefs) {
     const id = uid();
