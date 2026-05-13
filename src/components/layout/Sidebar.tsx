@@ -16,6 +16,8 @@ import {
   Moon,
   BookUser,
   UserCog,
+  Trash2,
+  SlidersHorizontal,
   type LucideIcon,
 } from 'lucide-react'
 import { Avatar } from '@/components/ui/Avatar'
@@ -33,10 +35,12 @@ const navItems: NavItem[] = [
   { href: '/search', label: 'Recherche', icon: Search },
   { href: '/annuaire', label: 'Annuaire', icon: BookUser },
   { href: '/profil', label: 'Profil', icon: UserCog },
+  { href: '/parametres', label: 'Paramètres', icon: SlidersHorizontal },
 ]
 
 const adminItems: NavItem[] = [
   { href: '/admin', label: 'Administration', icon: Settings },
+  { href: '/corbeille', label: 'Corbeille', icon: Trash2 },
 ]
 
 interface AINavItem {

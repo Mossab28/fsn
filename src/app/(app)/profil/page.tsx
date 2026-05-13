@@ -1,9 +1,9 @@
 'use client'
 
-import { useSession, signOut } from 'next-auth/react'
+import { useSession } from 'next-auth/react'
 import { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { User, Mail, Shield, Users, Calendar, Download, Trash2, Save, AlertTriangle, Check, X } from 'lucide-react'
+import { User, Mail, Shield, Users, Calendar, Download, Save, AlertTriangle, Check, X } from 'lucide-react'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Button } from '@/components/ui/Button'
 
@@ -33,12 +33,9 @@ export default function ProfilPage() {
   const { data: session, update: updateSession } = useSession()
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [name, setName] = useState('')
-  const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [exporting, setExporting] = useState(false)
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
-  const [deleting, setDeleting] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
   const fetchProfile = useCallback(async () => {
@@ -48,7 +45,6 @@ export default function ProfilPage() {
       const data = await res.json()
       setProfile(data)
       setName(data.name)
-      setEmail(data.email)
     } catch {
       setMessage({ type: 'error', text: 'Impossible de charger le profil' })
     } finally {
@@ -61,8 +57,8 @@ export default function ProfilPage() {
   }, [fetchProfile])
 
   const handleSave = async () => {
-    if (!name.trim() || !email.trim()) {
-      setMessage({ type: 'error', text: 'Le nom et l\'email sont requis' })
+    if (!name.trim()) {
+      setMessage({ type: 'error', text: 'Le nom est requis' })
       return
     }
 
@@ -72,22 +68,20 @@ export default function ProfilPage() {
       const res = await fetch('/api/users/me', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: name.trim(), email: email.trim() }),
+        body: JSON.stringify({ name: name.trim() }),
       })
 
       if (!res.ok) {
         const data = await res.json()
-        throw new Error(data.error || 'Erreur de mise a jour')
+        throw new Error(data.error || 'Erreur de mise à jour')
       }
 
       const updated = await res.json()
       setProfile(updated)
       setName(updated.name)
-      setEmail(updated.email)
-      setMessage({ type: 'success', text: 'Profil mis a jour avec succes' })
+      setMessage({ type: 'success', text: 'Profil mis à jour avec succès' })
 
-      // Update the session to reflect changes
-      await updateSession({ name: updated.name, email: updated.email })
+      await updateSession({ name: updated.name })
     } catch (err) {
       setMessage({ type: 'error', text: err instanceof Error ? err.message : 'Erreur inconnue' })
     } finally {
@@ -119,22 +113,7 @@ export default function ProfilPage() {
     }
   }
 
-  const handleDelete = async () => {
-    setDeleting(true)
-    try {
-      const res = await fetch('/api/users/me', { method: 'DELETE' })
-      if (!res.ok) throw new Error('Erreur de suppression')
-
-      // Sign out and redirect
-      await signOut({ callbackUrl: '/login' })
-    } catch {
-      setMessage({ type: 'error', text: 'Erreur lors de la suppression du compte' })
-      setDeleting(false)
-      setShowDeleteConfirm(false)
-    }
-  }
-
-  const hasChanges = profile && (name !== profile.name || email !== profile.email)
+  const hasChanges = profile && name !== profile.name
 
   if (loading) {
     return (
@@ -267,7 +246,7 @@ export default function ProfilPage() {
               />
             </div>
 
-            {/* Email field */}
+            {/* Email field (read-only — managed in Paramètres) */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               <label style={{
                 fontFamily: 'var(--font-body)',
@@ -281,24 +260,17 @@ export default function ProfilPage() {
                 <Mail size={13} />
                 Email
               </label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                style={{
-                  padding: '8px 12px',
-                  borderRadius: 'var(--radius-md)',
-                  border: '1px solid var(--border)',
-                  background: 'var(--bg)',
-                  color: 'var(--text-primary)',
-                  fontFamily: 'var(--font-body)',
-                  fontSize: '13px',
-                  outline: 'none',
-                  transition: 'border-color 0.15s',
-                }}
-                onFocus={(e) => { e.currentTarget.style.borderColor = 'var(--accent)' }}
-                onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--border)' }}
-              />
+              <div style={{
+                fontFamily: 'var(--font-body)',
+                fontSize: '13px',
+                color: 'var(--text-primary)',
+                padding: '8px 12px',
+                borderRadius: 'var(--radius-md)',
+                background: 'var(--bg)',
+                border: '1px solid var(--border)',
+              }}>
+                {profile.email}
+              </div>
             </div>
 
             {/* Role (read-only) */}
@@ -459,112 +431,6 @@ export default function ProfilPage() {
             </div>
           </motion.div>
 
-          {/* Danger zone */}
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: 0.2 }}
-            style={{
-              background: 'var(--bg-surface)',
-              border: '1px solid rgba(239, 68, 68, 0.2)',
-              borderRadius: 'var(--radius-lg)',
-              padding: '24px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '16px',
-            }}
-          >
-            <div style={{
-              fontFamily: 'var(--font-display)',
-              fontSize: '15px',
-              fontWeight: 600,
-              color: 'var(--red)',
-              letterSpacing: '-0.01em',
-            }}>
-              Zone de danger
-            </div>
-
-            <p style={{
-              fontFamily: 'var(--font-body)',
-              fontSize: '13px',
-              color: 'var(--text-secondary)',
-              lineHeight: 1.6,
-              margin: 0,
-            }}>
-              La suppression de votre compte est irreversible. Toutes vos contributions seront supprimees
-              et vos documents seront reassignes.
-            </p>
-
-            {!showDeleteConfirm ? (
-              <Button
-                variant="danger"
-                icon={<Trash2 size={14} />}
-                onClick={() => setShowDeleteConfirm(true)}
-              >
-                Supprimer mon compte
-              </Button>
-            ) : (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                style={{
-                  padding: '16px',
-                  borderRadius: 'var(--radius-md)',
-                  background: 'var(--red-dim)',
-                  border: '1px solid rgba(239, 68, 68, 0.2)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '12px',
-                }}
-              >
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  fontFamily: 'var(--font-body)',
-                  fontSize: '13px',
-                  fontWeight: 600,
-                  color: 'var(--red)',
-                }}>
-                  <AlertTriangle size={16} />
-                  Etes-vous sur de vouloir supprimer votre compte ?
-                </div>
-                <p style={{
-                  fontFamily: 'var(--font-body)',
-                  fontSize: '12px',
-                  color: 'var(--text-secondary)',
-                  margin: 0,
-                  lineHeight: 1.5,
-                }}>
-                  Cette action est definitive. Toutes vos donnees personnelles, contributions et logs
-                  d&apos;activite seront supprimes.
-                </p>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <Button
-                    variant="danger"
-                    size="sm"
-                    icon={<Trash2 size={13} />}
-                    onClick={handleDelete}
-                    loading={deleting}
-                    style={{
-                      background: 'var(--red)',
-                      color: '#FFFFFF',
-                    }}
-                  >
-                    Confirmer la suppression
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setShowDeleteConfirm(false)}
-                    disabled={deleting}
-                  >
-                    Annuler
-                  </Button>
-                </div>
-              </motion.div>
-            )}
-          </motion.div>
         </div>
       </div>
     </div>

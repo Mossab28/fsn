@@ -80,7 +80,18 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         : {}),
     }
 
-    const [allResults, total] = await Promise.all([
+    // Search folders too (only when a query is provided, no doc-specific filters)
+    const folderWhere = q
+      ? {
+          OR: [
+            { name: { contains: q } },
+          ],
+        }
+      : {}
+    const shouldSearchFolders =
+      !!q && !categoryId && !mimeType && !folderId && !statusList && !authorName && !dateFromParsed && !dateToParsed
+
+    const [allResults, total, folders] = await Promise.all([
       prisma.document.findMany({
         where,
         include: {
@@ -91,6 +102,15 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         take: pageSize,
       }),
       prisma.document.count({ where }),
+      shouldSearchFolders
+        ? prisma.folder.findMany({
+            where: folderWhere,
+            include: {
+              _count: { select: { documents: true, children: true } },
+            },
+            take: 20,
+          })
+        : Promise.resolve([]),
     ])
 
     // Improved relevance scoring when a query is provided
@@ -126,6 +146,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     return NextResponse.json({
       data: sorted,
+      folders,
       total,
       page,
       pageSize,

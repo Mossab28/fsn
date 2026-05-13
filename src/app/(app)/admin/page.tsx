@@ -36,6 +36,7 @@ import { Input } from '@/components/ui/Input'
 import { Badge } from '@/components/ui/Badge'
 import { Spinner } from '@/components/ui/Spinner'
 import { Avatar } from '@/components/ui/Avatar'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { formatBytes, formatDate } from '@/lib/utils'
 import type { DocumentWithRelations, Category, UserGroup } from '@/types'
 import type { SafeUser } from '@/types'
@@ -137,6 +138,11 @@ function UsersTab() {
   const [editRole, setEditRole] = useState<'ADMIN' | 'MEMBER' | 'READER'>('MEMBER')
   const [editGroupId, setEditGroupId] = useState<string>('')
 
+  // Delete confirm
+  const [deleteUserId, setDeleteUserId] = useState<string | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState('')
+
   const loadUsers = useCallback(async () => {
     setIsLoading(true)
     try {
@@ -213,14 +219,27 @@ function UsersTab() {
     }
   }
 
-  const handleDeleteUser = async (userId: string) => {
-    if (!confirm('Supprimer cet utilisateur ?')) return
+  const handleDeleteUser = (userId: string) => {
+    setDeleteUserId(userId)
+    setDeleteError('')
+  }
+
+  const confirmDeleteUser = async () => {
+    if (!deleteUserId) return
+    setIsDeleting(true)
+    setDeleteError('')
     try {
-      const res = await fetch(`/api/admin/users/${userId}`, { method: 'DELETE' })
-      if (!res.ok) throw new Error('Échec de la suppression')
+      const res = await fetch(`/api/admin/users/${deleteUserId}`, { method: 'DELETE' })
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        throw new Error(body.error ?? 'Échec de la suppression')
+      }
+      setDeleteUserId(null)
       loadUsers()
     } catch (err) {
-      console.error(err)
+      setDeleteError((err as Error).message)
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -451,6 +470,18 @@ function UsersTab() {
           </ModalOverlay>
         )}
       </AnimatePresence>
+
+      <ConfirmDialog
+        open={!!deleteUserId}
+        title="Supprimer cet utilisateur"
+        description="L'utilisateur et toutes ses données associées seront définitivement supprimés. Cette action est irréversible."
+        confirmLabel="Supprimer"
+        variant="danger"
+        loading={isDeleting}
+        error={deleteError}
+        onConfirm={confirmDeleteUser}
+        onCancel={() => { setDeleteUserId(null); setDeleteError('') }}
+      />
     </div>
   )
 }
@@ -1022,6 +1053,11 @@ function GroupsTab() {
   const [formDescription, setFormDescription] = useState('')
   const [formColor, setFormColor] = useState('#00C9A7')
 
+  // Delete confirm
+  const [deleteGroupId, setDeleteGroupId] = useState<string | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState('')
+
   const loadGroups = useCallback(async () => {
     setIsLoading(true)
     try {
@@ -1094,14 +1130,27 @@ function GroupsTab() {
     }
   }
 
-  const handleDelete = async (groupId: string) => {
-    if (!confirm('Supprimer ce groupe ? Les utilisateurs seront désassignés.')) return
+  const handleDelete = (groupId: string) => {
+    setDeleteGroupId(groupId)
+    setDeleteError('')
+  }
+
+  const confirmDeleteGroup = async () => {
+    if (!deleteGroupId) return
+    setIsDeleting(true)
+    setDeleteError('')
     try {
-      const res = await fetch(`/api/admin/groups/${groupId}`, { method: 'DELETE' })
-      if (!res.ok) throw new Error('Échec de la suppression')
+      const res = await fetch(`/api/admin/groups/${deleteGroupId}`, { method: 'DELETE' })
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        throw new Error(body.error ?? 'Échec de la suppression')
+      }
+      setDeleteGroupId(null)
       loadGroups()
     } catch (err) {
-      console.error(err)
+      setDeleteError((err as Error).message)
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -1301,6 +1350,18 @@ function GroupsTab() {
           </ModalOverlay>
         )}
       </AnimatePresence>
+
+      <ConfirmDialog
+        open={!!deleteGroupId}
+        title="Supprimer ce groupe"
+        description="Le groupe sera supprimé et les utilisateurs qui y sont rattachés seront désassignés. Cette action est irréversible."
+        confirmLabel="Supprimer"
+        variant="danger"
+        loading={isDeleting}
+        error={deleteError}
+        onConfirm={confirmDeleteGroup}
+        onCancel={() => { setDeleteGroupId(null); setDeleteError('') }}
+      />
     </div>
   )
 }

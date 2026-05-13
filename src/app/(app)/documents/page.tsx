@@ -1,6 +1,7 @@
 'use client'
 
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Upload,
@@ -51,11 +52,20 @@ function getFolderColor(color: string | null, index: number): string {
   return color || FOLDER_COLORS[index % FOLDER_COLORS.length]
 }
 
-export default function DocumentsPage() {
+function DocumentsPageInner() {
   const { data: session } = useSession()
   const isAdmin = session?.user?.role === 'ADMIN'
+  const searchParams = useSearchParams()
+  const folderParam = searchParams.get('folder')
 
-  const [currentFolderId, setCurrentFolderId] = useState<string | null>(null)
+  const [currentFolderId, setCurrentFolderId] = useState<string | null>(folderParam)
+
+  useEffect(() => {
+    if (folderParam !== currentFolderId) {
+      setCurrentFolderId(folderParam)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [folderParam])
   const [folders, setFolders] = useState<FolderData[]>([])
   const [documents, setDocuments] = useState<DocumentWithRelations[]>([])
   const [breadcrumb, setBreadcrumb] = useState<BreadcrumbItem[]>([])
@@ -189,10 +199,10 @@ export default function DocumentsPage() {
     setDeleteError('')
 
     try {
-      const url = deletingType === 'folder'
-        ? `/api/folders/${deleteId}`
-        : `/api/documents/${deleteId}`
-      const res = await fetch(url, { method: 'DELETE' })
+      // Documents → soft delete (move to corbeille). Folders → hard delete.
+      const res = deletingType === 'folder'
+        ? await fetch(`/api/folders/${deleteId}`, { method: 'DELETE' })
+        : await fetch(`/api/documents/${deleteId}/archive`, { method: 'PATCH' })
       if (!res.ok) {
         const body = await res.json()
         throw new Error(body.error ?? 'Erreur lors de la suppression')
@@ -700,12 +710,12 @@ export default function DocumentsPage() {
                 </div>
                 <div>
                   <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 6px' }}>
-                    Supprimer {deletingType === 'folder' ? 'le dossier' : 'le document'}
+                    {deletingType === 'folder' ? 'Supprimer le dossier' : 'Mettre dans la corbeille'}
                   </h3>
                   <p style={{ fontFamily: 'var(--font-body)', fontSize: '13px', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.55 }}>
                     {deletingType === 'folder'
                       ? 'Le dossier et tout son contenu (sous-dossiers, documents) seront définitivement supprimés.'
-                      : 'Le document et son fichier seront définitivement supprimés.'}
+                      : 'Le document sera déplacé dans la corbeille. Vous pourrez le restaurer ou le supprimer définitivement plus tard.'}
                   </p>
                 </div>
               </div>
@@ -726,7 +736,9 @@ export default function DocumentsPage() {
                   Annuler
                 </Button>
                 <Button variant="danger" onClick={handleDeleteConfirm} loading={isDeleting} icon={!isDeleting ? <Trash2 size={14} /> : undefined}>
-                  {isDeleting ? 'Suppression...' : 'Supprimer'}
+                  {isDeleting
+                    ? (deletingType === 'folder' ? 'Suppression...' : 'Déplacement...')
+                    : (deletingType === 'folder' ? 'Supprimer' : 'Mettre à la corbeille')}
                 </Button>
               </div>
             </motion.div>
@@ -751,5 +763,13 @@ export default function DocumentsPage() {
         onSuccess={fetchContent}
       />
     </>
+  )
+}
+
+export default function DocumentsPage() {
+  return (
+    <Suspense fallback={null}>
+      <DocumentsPageInner />
+    </Suspense>
   )
 }

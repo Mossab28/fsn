@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useRef, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Search,
@@ -55,6 +56,10 @@ interface Folder {
   parentId: string | null
 }
 
+interface FolderResult extends Folder {
+  _count?: { documents: number; children: number }
+}
+
 interface AISearchResult {
   documents: DocumentWithRelations[]
   filters: {
@@ -70,8 +75,10 @@ interface AISearchResult {
 const ALL_STATUSES: DocumentStatus[] = ['BROUILLON', 'ENRICHISSEMENT', 'RELECTURE', 'DIFFUSION', 'ARCHIVE']
 
 export default function SearchPage() {
+  const router = useRouter()
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<DocumentWithRelations[]>([])
+  const [folderResults, setFolderResults] = useState<FolderResult[]>([])
   const [categories, setCategories] = useState<(Category & { documentCount?: number })[]>([])
   const [total, setTotal] = useState(0)
   const [isLoading, setIsLoading] = useState(false)
@@ -141,7 +148,9 @@ export default function SearchPage() {
       try {
         const res = await fetch(`/api/search?${params}`, { signal: controller.signal })
         if (!res.ok) throw new Error('Search failed')
-        const data: PaginatedResponse<DocumentWithRelations> = await res.json()
+        const data: PaginatedResponse<DocumentWithRelations> & { folders?: FolderResult[] } = await res.json()
+
+        setFolderResults(Array.isArray(data.folders) ? data.folders : [])
 
         let filtered = data.data
 
@@ -232,6 +241,7 @@ export default function SearchPage() {
     setQuery('')
     setHasSearched(false)
     setResults([])
+    setFolderResults([])
     setTotal(0)
     setAiResults(null)
     setAiError(null)
@@ -1211,14 +1221,16 @@ export default function SearchPage() {
                           color: 'var(--text-secondary)',
                         }}
                       >
-                        {total === 0
-                          ? query
-                            ? `Aucun r\u00e9sultat pour "${query}"`
-                            : 'Aucun r\u00e9sultat'
-                          : `${total} r\u00e9sultat${total > 1 ? 's' : ''}${query ? ` pour "${query}"` : ''}`}
+                        {(() => {
+                          const totalAll = total + folderResults.length
+                          if (totalAll === 0) {
+                            return query ? `Aucun r\u00e9sultat pour "${query}"` : 'Aucun r\u00e9sultat'
+                          }
+                          return `${totalAll} r\u00e9sultat${totalAll > 1 ? 's' : ''}${query ? ` pour "${query}"` : ''}`
+                        })()}
                       </span>
-                      {total > 0 && (
-                        <Badge variant="accent">{total}</Badge>
+                      {(total + folderResults.length) > 0 && (
+                        <Badge variant="accent">{total + folderResults.length}</Badge>
                       )}
                     </div>
 
@@ -1273,6 +1285,93 @@ export default function SearchPage() {
                   </div>
                 )}
 
+                {/* Folder results */}
+                {!isLoading && folderResults.length > 0 && (
+                  <div style={{ marginBottom: '24px' }}>
+                    <div
+                      style={{
+                        fontFamily: 'var(--font-body)',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        color: 'var(--text-tertiary)',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.06em',
+                        marginBottom: '10px',
+                      }}
+                    >
+                      Dossiers ({folderResults.length})
+                    </div>
+                    <div
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
+                        gap: '10px',
+                      }}
+                    >
+                      {folderResults.map((f) => (
+                        <motion.button
+                          key={f.id}
+                          onClick={() => router.push(`/documents?folder=${f.id}`)}
+                          whileHover={{ y: -2, borderColor: 'var(--accent)' }}
+                          transition={{ duration: 0.15 }}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '10px',
+                            padding: '12px 14px',
+                            background: 'var(--bg-surface)',
+                            border: '1px solid var(--border)',
+                            borderRadius: 'var(--radius-md)',
+                            cursor: 'pointer',
+                            textAlign: 'left',
+                            transition: 'all var(--transition)',
+                          }}
+                        >
+                          <div
+                            style={{
+                              width: '32px',
+                              height: '32px',
+                              borderRadius: 'var(--radius-sm)',
+                              background: f.color || 'rgba(0, 201, 167, 0.12)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              color: f.color ? '#fff' : 'var(--accent)',
+                              flexShrink: 0,
+                            }}
+                          >
+                            <FolderOpen size={16} />
+                          </div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div
+                              style={{
+                                fontFamily: 'var(--font-body)',
+                                fontSize: '13px',
+                                fontWeight: 600,
+                                color: 'var(--text-primary)',
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                              }}
+                            >
+                              {f.name}
+                            </div>
+                            <div
+                              style={{
+                                fontFamily: 'var(--font-body)',
+                                fontSize: '11px',
+                                color: 'var(--text-tertiary)',
+                              }}
+                            >
+                              {f._count?.documents ?? 0} doc{(f._count?.documents ?? 0) > 1 ? 's' : ''} · {f._count?.children ?? 0} sous-dossier{(f._count?.children ?? 0) > 1 ? 's' : ''}
+                            </div>
+                          </div>
+                        </motion.button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* Results */}
                 {isLoading || results.length > 0 ? (
                   <DocumentGrid
@@ -1280,7 +1379,7 @@ export default function SearchPage() {
                     isLoading={isLoading}
                     viewMode={viewMode}
                   />
-                ) : (
+                ) : folderResults.length > 0 ? null : (
                   /* No results state */
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
