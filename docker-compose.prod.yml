@@ -5,7 +5,7 @@ services:
     restart: unless-stopped
     environment:
       - NODE_ENV=production
-      - NEXTAUTH_SECRET=fsn-prod-secret-2026-change-me
+      - NEXTAUTH_SECRET=d6hE5zBIyU+Du04A63V3YS+Vp8SUd+1LjqAPGJooURQZpN21Xnn0TYHKuXkJm/s5
       - NEXTAUTH_URL=http://fsn.212-227-88-180.nip.io
       - UPLOAD_DIR=/app/uploads
     volumes:

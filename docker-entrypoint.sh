@@ -7,32 +7,41 @@ echo "=== FSN Platform - Starting ==="
 echo "Running Prisma migrations..."
 npx prisma migrate deploy 2>&1 || echo "Migration warning (may be first run)"
 
-# Always create users if missing (idempotent)
-echo "Checking users..."
+# Provision required accounts (idempotent: upsert by email)
+echo "Provisioning accounts..."
 node -e "
 const Database = require('better-sqlite3');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const db = new Database('prisma/dev.db');
-const count = db.prepare('SELECT COUNT(*) as c FROM User').get().c;
-if (count === 0) {
-  console.log('No users, seeding default accounts...');
-  const now = new Date().toISOString();
-  const users = [
-    ['admin@fsn.fr', 'Admin2026!', 'Administrateur FSN', 'ADMIN'],
-    ['membre@fsn.fr', 'Membre2026!', 'Marie Membre', 'MEMBER'],
-    ['lecteur@fsn.fr', 'Lecteur2026!', 'Leo Lecteur', 'READER'],
-  ];
-  const stmt = db.prepare('INSERT INTO User (id, email, password, name, role, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?)');
-  for (const [email, pass, name, role] of users) {
-    const hash = bcrypt.hashSync(pass, 10);
+
+// Remove legacy demo accounts if they still exist
+db.prepare(\"DELETE FROM User WHERE email IN ('admin@fsn.fr','membre@fsn.fr','lecteur@fsn.fr')\").run();
+
+const accounts = [
+  ['client@test.fsn', 'Client2026!', 'Client Démo', 'ADMIN'],
+  ['mossab@fsn.fr', 'Mossab2026!', 'Mossab Mirande-Ney', 'ADMIN'],
+];
+
+const now = new Date().toISOString();
+const select = db.prepare('SELECT id FROM User WHERE email = ?');
+const insert = db.prepare('INSERT INTO User (id, email, password, name, role, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?)');
+const update = db.prepare('UPDATE User SET password = ?, name = ?, role = ?, updatedAt = ? WHERE email = ?');
+
+for (const [email, pass, name, role] of accounts) {
+  const hash = bcrypt.hashSync(pass, 10);
+  const existing = select.get(email);
+  if (existing) {
+    update.run(hash, name, role, now, email);
+    console.log('  Updated:', email, '(' + role + ')');
+  } else {
     const id = crypto.randomUUID().replace(/-/g, '').slice(0, 25);
-    stmt.run(id, email, hash, name, role, now, now);
+    insert.run(id, email, hash, name, role, now, now);
     console.log('  Created:', email, '(' + role + ')');
   }
 }
 db.close();
-" 2>&1 || echo "Users check done"
+" 2>&1 || echo "Account provisioning done"
 
 # Run full seed (idempotent — skips if documents already exist)
 echo "Running full seed (categories, folders, documents, versions, wiki, logs)..."
