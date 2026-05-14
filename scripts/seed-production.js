@@ -19,16 +19,20 @@ function isoDate(dateStr) {
 }
 
 // ─── Existing Users (read from DB) ────────────────────────────────────────
-const users = db.prepare("SELECT id, email FROM User").all();
+const users = db.prepare("SELECT id, email, role FROM User").all();
 const userMap = {};
 for (const u of users) userMap[u.email] = u.id;
-const adminId = userMap['admin@fsn.fr'];
-const membreId = userMap['membre@fsn.fr'];
-const lecteurId = userMap['lecteur@fsn.fr'];
-if (!adminId || !membreId || !lecteurId) {
-  console.error('Missing users! Found:', Object.keys(userMap));
-  process.exit(1);
+
+// Pick the first ADMIN as fallback for any reference, so the seed stays
+// compatible with whatever accounts are provisioned at boot.
+const firstAdmin = users.find((u) => u.role === 'ADMIN') || users[0];
+if (!firstAdmin) {
+  console.error('No users in DB, skipping content seed.');
+  process.exit(0);
 }
+const adminId = userMap['admin@fsn.fr'] || firstAdmin.id;
+const membreId = userMap['membre@fsn.fr'] || firstAdmin.id;
+const lecteurId = userMap['lecteur@fsn.fr'] || firstAdmin.id;
 
 // ─── 1. Categories ────────────────────────────────────────────────────────
 const categories = [
