@@ -587,36 +587,6 @@ export default function LoginPage() {
             </motion.button>
           </form>
 
-          {/* Contact admin for access */}
-          <div
-            style={{
-              marginTop: '32px',
-              padding: '12px 16px',
-              background: 'var(--bg-raised)',
-              border: '1px solid var(--border)',
-              borderRadius: 'var(--radius-md)',
-              textAlign: 'center',
-            }}
-          >
-            <p
-              style={{
-                fontSize: '11px',
-                fontWeight: 600,
-                color: 'var(--text-tertiary)',
-                letterSpacing: '0.06em',
-                textTransform: 'uppercase',
-                marginBottom: '6px',
-              }}
-            >
-              Acces demo
-            </p>
-            <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', fontFamily: 'monospace', margin: 0 }}>
-              admin@fsn.fr
-              <span style={{ color: 'var(--border)', margin: '0 6px' }}>/</span>
-              Admin2026!
-            </p>
-          </div>
-
           {/* Footer */}
           <p
             style={{
