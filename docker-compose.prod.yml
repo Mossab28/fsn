@@ -6,19 +6,14 @@ services:
     environment:
       - NODE_ENV=production
       - NEXTAUTH_SECRET=d6hE5zBIyU+Du04A63V3YS+Vp8SUd+1LjqAPGJooURQZpN21Xnn0TYHKuXkJm/s5
-      - NEXTAUTH_URL=http://fsn.212-227-88-180.nip.io
+      - NEXTAUTH_URL=https://fsn.212.227.88.180.nip.io
+      - NEXTAUTH_URL_INTERNAL=http://fsn:3000
       - UPLOAD_DIR=/app/uploads
     volumes:
       - fsn-uploads:/app/uploads
       - fsn-db:/app/prisma
     networks:
       - dokploy-network
-    labels:
-      - "traefik.enable=true"
-      - "traefik.docker.network=dokploy-network"
-      - "traefik.http.routers.fsn.rule=Host(`fsn.212-227-88-180.nip.io`)"
-      - "traefik.http.routers.fsn.entrypoints=web"
-      - "traefik.http.services.fsn.loadbalancer.server.port=3000"
 
 networks:
   dokploy-network:
