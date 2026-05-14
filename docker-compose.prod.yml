@@ -3,18 +3,26 @@ services:
     build: .
     container_name: fsn-platform
     restart: unless-stopped
-    ports:
-      - "4200:3000"
     environment:
       - NODE_ENV=production
       - NEXTAUTH_SECRET=fsn-prod-secret-2026-change-me
-      - NEXTAUTH_URL=http://212.227.88.180:4200
+      - NEXTAUTH_URL=http://fsn.212-227-88-180.nip.io
       - UPLOAD_DIR=/app/uploads
     volumes:
       - fsn-uploads:/app/uploads
       - fsn-db:/app/prisma
+    networks:
+      - dokploy-network
     labels:
-      - "traefik.enable=false"
+      - "traefik.enable=true"
+      - "traefik.docker.network=dokploy-network"
+      - "traefik.http.routers.fsn.rule=Host(`fsn.212-227-88-180.nip.io`)"
+      - "traefik.http.routers.fsn.entrypoints=web"
+      - "traefik.http.services.fsn.loadbalancer.server.port=3000"
+
+networks:
+  dokploy-network:
+    external: true
 
 volumes:
   fsn-uploads:
