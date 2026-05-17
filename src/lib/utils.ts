@@ -23,10 +23,12 @@ export function formatDate(date: Date | string): string {
 }
 
 export function getFileIcon(mimeType: string): string {
+  // Order matters: PowerPoint must be checked before generic "document"
+  // (PPTX mime includes "officedocument" which would match Word otherwise)
   if (mimeType === 'application/pdf') return 'FileText'
-  if (mimeType.includes('word') || mimeType.includes('document')) return 'FileText'
-  if (mimeType.includes('excel') || mimeType.includes('spreadsheet')) return 'Sheet'
   if (mimeType.includes('powerpoint') || mimeType.includes('presentation')) return 'Presentation'
+  if (mimeType.includes('msword') || mimeType.includes('wordprocessingml')) return 'FileText'
+  if (mimeType.includes('excel') || mimeType.includes('spreadsheet')) return 'Sheet'
   if (mimeType.startsWith('image/')) return 'Image'
   return 'File'
 }

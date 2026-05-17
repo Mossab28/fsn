@@ -20,12 +20,17 @@ import {
   Loader2,
   ChevronDown,
   Pencil,
+  Presentation,
+  Video,
+  Music,
+  Archive,
 } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { Badge } from '@/components/ui/Badge'
 import { WikiPanel } from '@/components/documents/WikiPanel'
 import { formatBytes, formatDate, parseTags } from '@/lib/utils'
+import { getFileTypeInfo } from '@/lib/file-types'
 import type {
   DocumentWithRelations,
   DocumentVersion,
@@ -59,27 +64,30 @@ const ALL_STATUSES: DocumentStatus[] = [
 ]
 
 function getFileTypeConfig(mimeType: string) {
-  if (mimeType === 'application/pdf') {
-    return { label: 'PDF', color: '#EF4444', bgColor: 'rgba(239, 68, 68, 0.12)', iconName: 'pdf' }
-  }
-  if (mimeType.includes('word') || mimeType.includes('document')) {
-    return { label: 'Word', color: '#3B82F6', bgColor: 'rgba(59, 130, 246, 0.12)', iconName: 'word' }
-  }
-  if (mimeType.includes('excel') || mimeType.includes('spreadsheet')) {
-    return { label: 'Excel', color: '#22C55E', bgColor: 'rgba(34, 197, 94, 0.12)', iconName: 'excel' }
-  }
-  if (mimeType.startsWith('image/')) {
-    return { label: 'Image', color: '#A78BFA', bgColor: 'rgba(167, 139, 250, 0.12)', iconName: 'image' }
-  }
-  return { label: 'Fichier', color: '#71717A', bgColor: 'rgba(113, 113, 122, 0.12)', iconName: 'file' }
+  const info = getFileTypeInfo(mimeType)
+  return { label: info.label, color: info.color, bgColor: info.bgColor, iconName: info.kind }
 }
 
 function FileIcon({ mimeType, size }: { mimeType: string; size: number }) {
-  if (mimeType === 'application/pdf') return <FileText size={size} />
-  if (mimeType.includes('word') || mimeType.includes('document')) return <FileText size={size} />
-  if (mimeType.includes('excel') || mimeType.includes('spreadsheet')) return <BarChart2 size={size} />
-  if (mimeType.startsWith('image/')) return <ImageIcon size={size} />
-  return <File size={size} />
+  const { iconName } = getFileTypeInfo(mimeType)
+  switch (iconName) {
+    case 'BarChart2':
+      return <BarChart2 size={size} />
+    case 'Presentation':
+      return <Presentation size={size} />
+    case 'Image':
+      return <ImageIcon size={size} />
+    case 'Video':
+      return <Video size={size} />
+    case 'Music':
+      return <Music size={size} />
+    case 'Archive':
+      return <Archive size={size} />
+    case 'File':
+      return <File size={size} />
+    default:
+      return <FileText size={size} />
+  }
 }
 
 type SideTab = 'versions' | 'wiki'

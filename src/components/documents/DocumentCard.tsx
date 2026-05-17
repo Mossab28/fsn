@@ -12,11 +12,16 @@ import {
   Trash2,
   Calendar,
   User,
+  Presentation,
+  Video,
+  Music,
+  Archive,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { DocumentStatusBadge } from '@/components/documents/DocumentStatusBadge'
 import { formatBytes, formatDate, parseTags } from '@/lib/utils'
+import { getFileTypeInfo as getFileTypeInfoBase } from '@/lib/file-types'
 import type { DocumentWithRelations, DocumentStatus } from '@/types'
 
 const TAG_COLORS = [
@@ -50,45 +55,20 @@ interface FileTypeConfig {
   bgColor: string
 }
 
+const ICON_MAP_20 = {
+  FileText: <FileText size={20} />,
+  BarChart2: <BarChart2 size={20} />,
+  Presentation: <Presentation size={20} />,
+  Image: <ImageIcon size={20} />,
+  Video: <Video size={20} />,
+  Music: <Music size={20} />,
+  Archive: <Archive size={20} />,
+  File: <File size={20} />,
+} as const
+
 function getFileTypeConfig(mimeType: string): FileTypeConfig {
-  if (mimeType === 'application/pdf') {
-    return {
-      icon: <FileText size={20} />,
-      label: 'PDF',
-      color: '#EF4444',
-      bgColor: 'rgba(239, 68, 68, 0.12)',
-    }
-  }
-  if (mimeType.includes('word') || mimeType.includes('document') || mimeType.includes('msword')) {
-    return {
-      icon: <FileText size={20} />,
-      label: 'Word',
-      color: '#3B82F6',
-      bgColor: 'rgba(59, 130, 246, 0.12)',
-    }
-  }
-  if (mimeType.includes('excel') || mimeType.includes('spreadsheet') || mimeType.includes('csv')) {
-    return {
-      icon: <BarChart2 size={20} />,
-      label: 'Excel',
-      color: '#22C55E',
-      bgColor: 'rgba(34, 197, 94, 0.12)',
-    }
-  }
-  if (mimeType.startsWith('image/')) {
-    return {
-      icon: <ImageIcon size={20} />,
-      label: 'Image',
-      color: '#A78BFA',
-      bgColor: 'rgba(167, 139, 250, 0.12)',
-    }
-  }
-  return {
-    icon: <File size={20} />,
-    label: 'Fichier',
-    color: '#71717A',
-    bgColor: 'rgba(113, 113, 122, 0.12)',
-  }
+  const info = getFileTypeInfoBase(mimeType)
+  return { icon: ICON_MAP_20[info.iconName], label: info.label, color: info.color, bgColor: info.bgColor }
 }
 
 export function DocumentCard({ document, onDelete }: DocumentCardProps) {
