@@ -25,6 +25,7 @@ interface UploadModalProps {
   onOpenChange: (open: boolean) => void
   categories: Category[]
   onSuccess: () => void
+  folderId?: string | null
 }
 
 interface SelectedFile {
@@ -85,7 +86,7 @@ function slugFromFilename(filename: string): string {
     .trim()
 }
 
-export function UploadModal({ open, onOpenChange, categories, onSuccess }: UploadModalProps) {
+export function UploadModal({ open, onOpenChange, categories, onSuccess, folderId = null }: UploadModalProps) {
   const [selectedFile, setSelectedFile] = useState<SelectedFile | null>(null)
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
@@ -188,6 +189,7 @@ export function UploadModal({ open, onOpenChange, categories, onSuccess }: Uploa
     formData.append('title', title.trim())
     if (description.trim()) formData.append('description', description.trim())
     if (categoryId) formData.append('categoryId', categoryId)
+    if (folderId) formData.append('folderId', folderId)
     if (authorName.trim()) formData.append('authorName', authorName.trim())
     if (tags.length > 0) formData.append('tags', JSON.stringify(tags))
 

@@ -761,6 +761,7 @@ function DocumentsPageInner() {
         onOpenChange={setShowUpload}
         categories={categories}
         onSuccess={fetchContent}
+        folderId={currentFolderId}
       />
     </>
   )

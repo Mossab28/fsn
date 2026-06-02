@@ -24,7 +24,9 @@ import {
   Video,
   Music,
   Archive,
+  Trash2,
 } from 'lucide-react'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { formatDistanceToNow } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { Badge } from '@/components/ui/Badge'
@@ -105,6 +107,18 @@ export default function DocumentDetailPage() {
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false)
   const [changingStatus, setChangingStatus] = useState(false)
   const [wikiRefreshKey] = useState(0)
+  const [categories, setCategories] = useState<{ id: string; name: string }[]>([])
+  const [editOpen, setEditOpen] = useState(false)
+  const [editTitle, setEditTitle] = useState('')
+  const [editDescription, setEditDescription] = useState('')
+  const [editAuthorName, setEditAuthorName] = useState('')
+  const [editCategoryId, setEditCategoryId] = useState('')
+  const [editTagsInput, setEditTagsInput] = useState('')
+  const [editPublishedAt, setEditPublishedAt] = useState('')
+  const [savingEdit, setSavingEdit] = useState(false)
+  const [editError, setEditError] = useState('')
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   const isAdmin = session?.user?.role === 'ADMIN'
 
@@ -144,7 +158,82 @@ export default function DocumentDetailPage() {
       return
     }
     Promise.all([fetchDocument(), fetchVersions()]).finally(() => setLoading(false))
+    fetch('/api/categories')
+      .then((r) => (r.ok ? r.json() : []))
+      .then((d) => setCategories(Array.isArray(d) ? d : []))
+      .catch(() => {})
   }, [session, sessionStatus, fetchDocument, fetchVersions, router])
+
+  const openEdit = () => {
+    if (!document) return
+    setEditTitle(document.title)
+    setEditDescription(document.description || '')
+    setEditAuthorName(document.authorName || '')
+    setEditCategoryId(document.categoryId || '')
+    setEditTagsInput(parseTags(document.tags || '').join(', '))
+    setEditPublishedAt(
+      document.publishedAt
+        ? new Date(document.publishedAt).toISOString().slice(0, 10)
+        : ''
+    )
+    setEditError('')
+    setEditOpen(true)
+  }
+
+  const saveEdit = async () => {
+    if (!document) return
+    if (!editTitle.trim()) {
+      setEditError('Le titre est requis')
+      return
+    }
+    setSavingEdit(true)
+    setEditError('')
+    try {
+      const body: Record<string, unknown> = {
+        title: editTitle.trim(),
+        description: editDescription.trim() || null,
+        authorName: editAuthorName.trim() || null,
+        categoryId: editCategoryId || null,
+        tags: editTagsInput
+          .split(',')
+          .map((t) => t.trim())
+          .filter(Boolean),
+      }
+      if (editPublishedAt) {
+        body.publishedAt = new Date(editPublishedAt).toISOString()
+      } else {
+        body.publishedAt = null
+      }
+      const res = await fetch(`/api/documents/${document.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      if (!res.ok) {
+        const b = await res.json()
+        throw new Error(b.error || 'Échec de la sauvegarde')
+      }
+      const updated = await res.json()
+      setDocument(updated)
+      setEditOpen(false)
+    } catch (e) {
+      setEditError((e as Error).message)
+    } finally {
+      setSavingEdit(false)
+    }
+  }
+
+  const confirmDelete = async () => {
+    if (!document) return
+    setDeleting(true)
+    try {
+      const res = await fetch(`/api/documents/${document.id}/archive`, { method: 'PATCH' })
+      if (!res.ok) throw new Error('Échec de la suppression')
+      router.push('/documents')
+    } catch {
+      setDeleting(false)
+    }
+  }
 
   const handleStatusChange = async (newStatus: DocumentStatus) => {
     if (!document || changingStatus) return
@@ -198,8 +287,8 @@ export default function DocumentDetailPage() {
 
   return (
     <div style={{ padding: '0 0 60px' }}>
-      {/* Back navigation */}
-      <div style={{ marginBottom: '28px' }}>
+      {/* Back navigation + admin actions */}
+      <div style={{ marginBottom: '28px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
         <button
           onClick={() => router.push('/documents')}
           style={{
@@ -220,6 +309,48 @@ export default function DocumentDetailPage() {
           <ArrowLeft size={15} />
           Documents
         </button>
+        {isAdmin && document && (
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button
+              onClick={openEdit}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '8px 14px',
+                background: 'var(--bg-surface)',
+                border: '1px solid var(--border)',
+                borderRadius: 'var(--radius-md)',
+                fontFamily: 'var(--font-body)',
+                fontSize: '13px',
+                fontWeight: 500,
+                color: 'var(--text-primary)',
+                cursor: 'pointer',
+              }}
+            >
+              <Pencil size={13} /> Modifier
+            </button>
+            <button
+              onClick={() => setDeleteOpen(true)}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '8px 14px',
+                background: 'var(--red-dim)',
+                border: '1px solid rgba(239, 68, 68, 0.25)',
+                borderRadius: 'var(--radius-md)',
+                fontFamily: 'var(--font-body)',
+                fontSize: '13px',
+                fontWeight: 500,
+                color: 'var(--red)',
+                cursor: 'pointer',
+              }}
+            >
+              <Trash2 size={13} /> Supprimer
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Two-column layout */}
@@ -717,6 +848,104 @@ export default function DocumentDetailPage() {
           onClick={() => setStatusDropdownOpen(false)}
         />
       )}
+
+      {/* Edit metadata modal */}
+      {editOpen && (
+        <>
+          <div
+            onClick={() => !savingEdit && setEditOpen(false)}
+            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 60 }}
+          />
+          <div
+            style={{
+              position: 'fixed', inset: 0, zIndex: 61,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', pointerEvents: 'none',
+            }}
+          >
+            <div
+              style={{
+                pointerEvents: 'auto',
+                background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-xl)',
+                padding: '28px', width: '100%', maxWidth: '520px', boxShadow: 'var(--shadow-lg)',
+                maxHeight: '90vh', overflowY: 'auto',
+              }}
+            >
+              <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 18px' }}>
+                Modifier la fiche
+              </h3>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                <label style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)' }}>Titre *</span>
+                  <input value={editTitle} onChange={(e) => setEditTitle(e.target.value)}
+                    style={{ padding: '10px 12px', background: 'var(--bg-raised)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', fontSize: '14px', color: 'var(--text-primary)' }} />
+                </label>
+
+                <label style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)' }}>Description</span>
+                  <textarea value={editDescription} onChange={(e) => setEditDescription(e.target.value)} rows={3}
+                    style={{ padding: '10px 12px', background: 'var(--bg-raised)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', fontSize: '14px', color: 'var(--text-primary)', resize: 'vertical', fontFamily: 'inherit' }} />
+                </label>
+
+                <label style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)' }}>Auteur</span>
+                  <input value={editAuthorName} onChange={(e) => setEditAuthorName(e.target.value)}
+                    style={{ padding: '10px 12px', background: 'var(--bg-raised)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', fontSize: '14px', color: 'var(--text-primary)' }} />
+                </label>
+
+                <label style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)' }}>Catégorie</span>
+                  <select value={editCategoryId} onChange={(e) => setEditCategoryId(e.target.value)}
+                    style={{ padding: '10px 12px', background: 'var(--bg-raised)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', fontSize: '14px', color: 'var(--text-primary)' }}>
+                    <option value="">— Aucune —</option>
+                    {categories.map((c) => (<option key={c.id} value={c.id}>{c.name}</option>))}
+                  </select>
+                </label>
+
+                <label style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)' }}>Tags (séparés par virgule)</span>
+                  <input value={editTagsInput} onChange={(e) => setEditTagsInput(e.target.value)} placeholder="ex: stratégie, 2026, plénière"
+                    style={{ padding: '10px 12px', background: 'var(--bg-raised)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', fontSize: '14px', color: 'var(--text-primary)' }} />
+                </label>
+
+                <label style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)' }}>Date de publication</span>
+                  <input type="date" value={editPublishedAt} onChange={(e) => setEditPublishedAt(e.target.value)}
+                    style={{ padding: '10px 12px', background: 'var(--bg-raised)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', fontSize: '14px', color: 'var(--text-primary)' }} />
+                </label>
+
+                {editError && (
+                  <div style={{ padding: '8px 12px', background: 'var(--red-dim)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: 'var(--radius-md)', color: 'var(--red)', fontSize: '13px' }}>
+                    {editError}
+                  </div>
+                )}
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
+                <button onClick={() => setEditOpen(false)} disabled={savingEdit}
+                  style={{ padding: '9px 16px', background: 'var(--bg-raised)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)', cursor: savingEdit ? 'not-allowed' : 'pointer', opacity: savingEdit ? 0.6 : 1 }}>
+                  Annuler
+                </button>
+                <button onClick={saveEdit} disabled={savingEdit}
+                  style={{ padding: '9px 16px', background: 'var(--accent)', border: 'none', borderRadius: 'var(--radius-md)', fontSize: '13px', fontWeight: 600, color: '#fff', cursor: savingEdit ? 'not-allowed' : 'pointer', opacity: savingEdit ? 0.6 : 1 }}>
+                  {savingEdit ? 'Sauvegarde...' : 'Enregistrer'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      <ConfirmDialog
+        open={deleteOpen}
+        title="Supprimer ce document"
+        description="Le document sera déplacé dans la corbeille. Un administrateur pourra le restaurer ou le supprimer définitivement."
+        confirmLabel="Mettre à la corbeille"
+        variant="danger"
+        loading={deleting}
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteOpen(false)}
+      />
 
     </div>
   )
