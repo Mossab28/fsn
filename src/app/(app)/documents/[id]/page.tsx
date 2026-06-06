@@ -250,7 +250,8 @@ export default function DocumentDetailPage() {
     try {
       const res = await fetch(`/api/documents/${document.id}/archive`, { method: 'PATCH' })
       if (!res.ok) throw new Error('Échec de la suppression')
-      router.push('/documents')
+      // Redirect to corbeille so the admin sees where the doc went
+      router.push(isAdmin ? '/corbeille' : '/documents')
     } catch {
       setDeleting(false)
     }

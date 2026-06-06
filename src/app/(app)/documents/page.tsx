@@ -796,11 +796,11 @@ function DocumentsPageInner() {
                 </div>
                 <div>
                   <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 6px' }}>
-                    {deletingType === 'folder' ? 'Supprimer le dossier' : 'Mettre dans la corbeille'}
+                    {deletingType === 'folder' ? 'Mettre le dossier à la corbeille' : 'Mettre dans la corbeille'}
                   </h3>
                   <p style={{ fontFamily: 'var(--font-body)', fontSize: '13px', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.55 }}>
                     {deletingType === 'folder'
-                      ? 'Le dossier et tout son contenu (sous-dossiers, documents) seront définitivement supprimés.'
+                      ? 'Le dossier, ses sous-dossiers et tous les documents qu\'ils contiennent seront déplacés dans la corbeille. Vous pourrez tout restaurer.'
                       : 'Le document sera déplacé dans la corbeille. Vous pourrez le restaurer ou le supprimer définitivement plus tard.'}
                   </p>
                 </div>
@@ -822,9 +822,7 @@ function DocumentsPageInner() {
                   Annuler
                 </Button>
                 <Button variant="danger" onClick={handleDeleteConfirm} loading={isDeleting} icon={!isDeleting ? <Trash2 size={14} /> : undefined}>
-                  {isDeleting
-                    ? (deletingType === 'folder' ? 'Suppression...' : 'Déplacement...')
-                    : (deletingType === 'folder' ? 'Supprimer' : 'Mettre à la corbeille')}
+                  {isDeleting ? 'Déplacement...' : 'Mettre à la corbeille'}
                 </Button>
               </div>
             </motion.div>
