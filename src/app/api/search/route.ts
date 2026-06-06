@@ -83,6 +83,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     // Search folders too (only when a query is provided, no doc-specific filters)
     const folderWhere = q
       ? {
+          isArchived: false,
           OR: [
             { name: { contains: q } },
           ],

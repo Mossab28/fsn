@@ -6,11 +6,11 @@ import { useSession } from 'next-auth/react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Trash2,
-  RotateCcw,
   AlertCircle,
   ArchiveRestore,
   FileText,
   Calendar,
+  FolderOpen,
 } from 'lucide-react'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Button } from '@/components/ui/Button'
@@ -18,13 +18,24 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { formatBytes, formatDate } from '@/lib/utils'
 import type { DocumentWithRelations } from '@/types'
 
+interface ArchivedFolder {
+  id: string
+  name: string
+  color: string | null
+  parentId: string | null
+  _count: { children: number; documents: number }
+  updatedAt: string
+}
+
 export default function CorbeillePage() {
   const router = useRouter()
   const { data: session, status } = useSession()
   const [items, setItems] = useState<DocumentWithRelations[]>([])
+  const [folderItems, setFolderItems] = useState<ArchivedFolder[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [busyId, setBusyId] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
+  const [confirmDeleteFolder, setConfirmDeleteFolder] = useState<string | null>(null)
   const [confirmEmpty, setConfirmEmpty] = useState(false)
   const [emptying, setEmptying] = useState(false)
   const [error, setError] = useState('')
@@ -40,10 +51,15 @@ export default function CorbeillePage() {
   const fetchTrash = useCallback(async () => {
     setIsLoading(true)
     try {
-      const res = await fetch('/api/search?includeArchived=true&pageSize=100')
-      const data = await res.json()
-      const archived = (data.data || []).filter((d: DocumentWithRelations) => d.isArchived)
-      setItems(archived)
+      const [docsRes, foldersRes] = await Promise.all([
+        fetch('/api/search?includeArchived=true&pageSize=200'),
+        fetch('/api/folders?all=true&archivedOnly=true'),
+      ])
+      const docsData = await docsRes.json()
+      const archivedDocs = (docsData.data || []).filter((d: DocumentWithRelations) => d.isArchived)
+      setItems(archivedDocs)
+      const foldersData = await foldersRes.json()
+      setFolderItems(Array.isArray(foldersData) ? foldersData : [])
     } catch (err) {
       setError((err as Error).message)
     } finally {
@@ -101,9 +117,52 @@ export default function CorbeillePage() {
         // continue
       }
     }
+    for (const folder of folderItems) {
+      try {
+        await fetch(`/api/folders/${folder.id}`, { method: 'DELETE' })
+      } catch {
+        // continue
+      }
+    }
     setEmptying(false)
     setConfirmEmpty(false)
     fetchTrash()
+  }
+
+  const handleRestoreFolder = async (id: string) => {
+    setBusyId(id)
+    setError('')
+    try {
+      const res = await fetch(`/api/folders/${id}/archive`, { method: 'PATCH' })
+      if (!res.ok) {
+        const body = await res.json()
+        throw new Error(body.error ?? 'Erreur lors de la restauration')
+      }
+      setFolderItems((prev) => prev.filter((f) => f.id !== id))
+    } catch (err) {
+      setError((err as Error).message)
+    } finally {
+      setBusyId(null)
+    }
+  }
+
+  const handlePermanentDeleteFolder = async () => {
+    if (!confirmDeleteFolder) return
+    setBusyId(confirmDeleteFolder)
+    setError('')
+    try {
+      const res = await fetch(`/api/folders/${confirmDeleteFolder}`, { method: 'DELETE' })
+      if (!res.ok) {
+        const body = await res.json()
+        throw new Error(body.error ?? 'Erreur lors de la suppression')
+      }
+      setFolderItems((prev) => prev.filter((f) => f.id !== confirmDeleteFolder))
+      setConfirmDeleteFolder(null)
+    } catch (err) {
+      setError((err as Error).message)
+    } finally {
+      setBusyId(null)
+    }
   }
 
   if (status === 'loading' || !isAdmin) {
@@ -116,13 +175,20 @@ export default function CorbeillePage() {
         title="Corbeille"
         description={
           !isLoading
-            ? items.length === 0
+            ? items.length === 0 && folderItems.length === 0
               ? 'La corbeille est vide'
-              : `${items.length} document${items.length > 1 ? 's' : ''} dans la corbeille`
+              : [
+                  folderItems.length > 0
+                    ? `${folderItems.length} dossier${folderItems.length > 1 ? 's' : ''}`
+                    : null,
+                  items.length > 0
+                    ? `${items.length} document${items.length > 1 ? 's' : ''}`
+                    : null,
+                ].filter(Boolean).join(', ')
             : undefined
         }
         action={
-          items.length > 0 ? (
+          items.length > 0 || folderItems.length > 0 ? (
             <Button variant="danger" icon={<Trash2 size={14} />} onClick={() => setConfirmEmpty(true)}>
               Vider la corbeille
             </Button>
@@ -154,7 +220,7 @@ export default function CorbeillePage() {
           <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-tertiary)' }}>
             Chargement...
           </div>
-        ) : items.length === 0 ? (
+        ) : items.length === 0 && folderItems.length === 0 ? (
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
@@ -198,7 +264,70 @@ export default function CorbeillePage() {
             </p>
           </motion.div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {folderItems.length > 0 && (
+              <div>
+                <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '13px', fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 10px' }}>
+                  Dossiers
+                </h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {folderItems.map((folder) => (
+                    <motion.div
+                      key={folder.id}
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: '14px',
+                        padding: '14px 16px', background: 'var(--bg-surface)',
+                        border: '1px solid var(--border)', borderRadius: 'var(--radius-md)',
+                      }}
+                    >
+                      <div style={{
+                        width: '36px', height: '36px', borderRadius: 'var(--radius-sm)',
+                        background: folder.color ? `${folder.color}22` : 'var(--bg-raised)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        color: folder.color || 'var(--text-tertiary)', flexShrink: 0,
+                      }}>
+                        <FolderOpen size={16} />
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontFamily: 'var(--font-body)', fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                          {folder.name}
+                        </div>
+                        <div style={{ display: 'flex', gap: '12px', marginTop: '2px', fontSize: '11px', color: 'var(--text-tertiary)', fontFamily: 'var(--font-body)' }}>
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                            <Calendar size={10} /> {formatDate(folder.updatedAt)}
+                          </span>
+                          {folder._count.documents > 0 && <span>{folder._count.documents} doc{folder._count.documents > 1 ? 's' : ''}</span>}
+                          {folder._count.children > 0 && <span>{folder._count.children} sous-dossier{folder._count.children > 1 ? 's' : ''}</span>}
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
+                        <Button variant="secondary" size="sm" icon={<ArchiveRestore size={13} />}
+                          onClick={() => handleRestoreFolder(folder.id)}
+                          disabled={busyId === folder.id}>
+                          Restaurer
+                        </Button>
+                        <Button variant="danger" size="sm" icon={<Trash2 size={13} />}
+                          onClick={() => setConfirmDeleteFolder(folder.id)}
+                          disabled={busyId === folder.id}>
+                          Supprimer
+                        </Button>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {items.length > 0 && (
+              <div>
+                {folderItems.length > 0 && (
+                  <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '13px', fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 10px' }}>
+                    Documents
+                  </h3>
+                )}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {items.map((doc) => (
               <motion.div
                 key={doc.id}
@@ -282,9 +411,23 @@ export default function CorbeillePage() {
                 </div>
               </motion.div>
             ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        open={confirmDeleteFolder !== null}
+        title="Supprimer définitivement ce dossier"
+        description="Le dossier et tous ses sous-dossiers seront supprimés. Les documents qu'ils contenaient resteront dans la corbeille."
+        confirmLabel="Supprimer définitivement"
+        variant="danger"
+        loading={busyId !== null && busyId === confirmDeleteFolder}
+        onConfirm={handlePermanentDeleteFolder}
+        onCancel={() => setConfirmDeleteFolder(null)}
+      />
 
       <ConfirmDialog
         open={confirmEmpty}

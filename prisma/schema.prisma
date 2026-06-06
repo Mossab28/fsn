@@ -60,18 +60,20 @@ model ActivityLog {
 // ─── Dossiers ───────────────────────────────────────────────────────────────
 
 model Folder {
-  id        String   @id @default(cuid())
-  name      String
-  color     String?
-  parentId  String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         String   @id @default(cuid())
+  name       String
+  color      String?
+  parentId   String?
+  isArchived Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   parent   Folder?  @relation("FolderTree", fields: [parentId], references: [id], onDelete: Cascade)
   children Folder[] @relation("FolderTree")
   documents Document[]
 
   @@index([parentId])
+  @@index([isArchived])
 }
 
 // ─── Documents ──────────────────────────────────────────────────────────────

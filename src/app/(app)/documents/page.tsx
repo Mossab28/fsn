@@ -255,9 +255,9 @@ function DocumentsPageInner() {
     setDeleteError('')
 
     try {
-      // Documents → soft delete (move to corbeille). Folders → hard delete.
+      // Documents et dossiers → soft delete (mise à la corbeille).
       const res = deletingType === 'folder'
-        ? await fetch(`/api/folders/${deleteId}`, { method: 'DELETE' })
+        ? await fetch(`/api/folders/${deleteId}/archive`, { method: 'PATCH' })
         : await fetch(`/api/documents/${deleteId}/archive`, { method: 'PATCH' })
       if (!res.ok) {
         const body = await res.json()

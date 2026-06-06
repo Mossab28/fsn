@@ -12,9 +12,19 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const all = searchParams.get('all')
   const parentId = searchParams.get('parentId') // null = root
+  const includeArchived = searchParams.get('includeArchived') === 'true'
+  const archivedOnly = searchParams.get('archivedOnly') === 'true'
+
+  const archiveFilter = archivedOnly
+    ? { isArchived: true }
+    : includeArchived
+      ? {}
+      : { isArchived: false }
 
   const folders = await prisma.folder.findMany({
-    where: all === 'true' ? {} : { parentId: parentId || null },
+    where: all === 'true'
+      ? archiveFilter
+      : { ...archiveFilter, parentId: parentId || null },
     include: {
       _count: { select: { children: true, documents: true } },
     },
