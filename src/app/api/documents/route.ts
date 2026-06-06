@@ -48,8 +48,10 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       sortOrderParam === 'asc' ? 'asc' : 'desc'
     const search = searchParams.get('search') ?? undefined
     const folderId = searchParams.get('folderId')
+    const includeArchived = searchParams.get('includeArchived') === 'true'
 
     const where = {
+      ...(includeArchived ? {} : { isArchived: false }),
       ...(categoryId ? { categoryId } : {}),
       ...(mimeType ? { mimeType } : {}),
       ...(folderId !== null && folderId !== undefined
