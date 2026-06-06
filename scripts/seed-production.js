@@ -119,7 +119,7 @@ const createFolders = db.transaction(() => {
     { key: 'plateforme', name: 'Plateforme documentaire', color: null, parent: 'projets' },
     { key: 'transfo', name: 'Transformation digitale', color: null, parent: 'projets' },
     { key: 'formations', name: 'Formations', color: '#8B5CF6', parent: null },
-    { key: 'archives', name: 'Archives', color: '#6B7280', parent: null },
+    // 'Archives' retiré: doublonnait avec la corbeille intégrée
   ];
 
   for (const f of folders) {

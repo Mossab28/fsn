@@ -16,6 +16,7 @@ import {
   Video,
   Music,
   Archive,
+  FolderInput,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
@@ -46,6 +47,7 @@ function getTagColor(tag: string) {
 interface DocumentCardProps {
   document: DocumentWithRelations
   onDelete?: (id: string) => void
+  onMove?: (id: string) => void
 }
 
 interface FileTypeConfig {
@@ -71,7 +73,7 @@ function getFileTypeConfig(mimeType: string): FileTypeConfig {
   return { icon: ICON_MAP_20[info.iconName], label: info.label, color: info.color, bgColor: info.bgColor }
 }
 
-export function DocumentCard({ document, onDelete }: DocumentCardProps) {
+export function DocumentCard({ document, onDelete, onMove }: DocumentCardProps) {
   const router = useRouter()
   const fileType = getFileTypeConfig(document.mimeType)
 
@@ -89,6 +91,12 @@ export function DocumentCard({ document, onDelete }: DocumentCardProps) {
     e.preventDefault()
     e.stopPropagation()
     onDelete?.(document.id)
+  }
+
+  const handleMove = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    onMove?.(document.id)
   }
 
   const cardStyle: React.CSSProperties = {
@@ -319,6 +327,23 @@ export function DocumentCard({ document, onDelete }: DocumentCardProps) {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+          {onMove && (
+            <motion.button
+              onClick={handleMove}
+              whileHover={{ scale: 1.05, color: 'var(--accent)' }}
+              whileTap={{ scale: 0.95 }}
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                width: '30px', height: '30px', borderRadius: 'var(--radius-sm)',
+                background: 'transparent', border: '1px solid transparent',
+                color: 'var(--text-tertiary)', cursor: 'pointer', transition: 'all var(--transition)',
+              }}
+              aria-label="Déplacer le document"
+              title="Déplacer"
+            >
+              <FolderInput size={14} />
+            </motion.button>
+          )}
           {onDelete && (
             <motion.button
               onClick={handleDelete}
@@ -338,6 +363,7 @@ export function DocumentCard({ document, onDelete }: DocumentCardProps) {
                 transition: 'all var(--transition)',
               }}
               aria-label="Supprimer le document"
+              title="Mettre à la corbeille"
             >
               <Trash2 size={14} />
             </motion.button>

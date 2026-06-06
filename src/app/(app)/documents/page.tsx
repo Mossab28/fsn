@@ -90,6 +90,11 @@ function DocumentsPageInner() {
   const [allFolders, setAllFolders] = useState<FolderData[]>([])
   const [moveError, setMoveError] = useState('')
   const [moveSaving, setMoveSaving] = useState(false)
+  // Document move
+  const [movingDocument, setMovingDocument] = useState<string | null>(null)
+  const [docMoveTargetFolderId, setDocMoveTargetFolderId] = useState<string>('')
+  const [docMoveError, setDocMoveError] = useState('')
+  const [docMoveSaving, setDocMoveSaving] = useState(false)
 
   // ZIP import
   const [showZipImport, setShowZipImport] = useState(false)
@@ -180,6 +185,36 @@ function DocumentsPageInner() {
       setMoveError((e as Error).message)
     } finally {
       setMoveSaving(false)
+    }
+  }
+
+  const openDocMove = (docId: string) => {
+    const doc = documents.find((d) => d.id === docId)
+    setDocMoveTargetFolderId(doc?.folderId || '')
+    setDocMoveError('')
+    setMovingDocument(docId)
+  }
+
+  const handleMoveDocument = async () => {
+    if (!movingDocument) return
+    setDocMoveSaving(true)
+    setDocMoveError('')
+    try {
+      const res = await fetch(`/api/documents/${movingDocument}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ folderId: docMoveTargetFolderId || null }),
+      })
+      if (!res.ok) {
+        const b = await res.json()
+        throw new Error(b.error || 'Échec du déplacement')
+      }
+      setMovingDocument(null)
+      fetchContent()
+    } catch (e) {
+      setDocMoveError((e as Error).message)
+    } finally {
+      setDocMoveSaving(false)
     }
   }
 
@@ -714,6 +749,7 @@ function DocumentsPageInner() {
             documents={documents}
             isLoading={isLoading}
             onDelete={isAdmin ? (id: string) => handleDeleteRequest(id, 'document') : undefined}
+            onMove={isAdmin ? openDocMove : undefined}
             viewMode={viewMode}
           />
         )}
@@ -838,6 +874,45 @@ function DocumentsPageInner() {
         currentFolderId={currentFolderId}
         onSuccess={fetchContent}
       />
+
+      {/* Move document modal */}
+      {movingDocument && (
+        <>
+          <div
+            onClick={() => !docMoveSaving && setMovingDocument(null)}
+            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 50 }}
+          />
+          <div style={{ position: 'fixed', inset: 0, zIndex: 51, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', pointerEvents: 'none' }}>
+            <div style={{ pointerEvents: 'auto', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-xl)', padding: '28px', width: '100%', maxWidth: '440px', boxShadow: 'var(--shadow-lg)' }}>
+              <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 14px' }}>
+                Déplacer le document
+              </h3>
+              <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: '0 0 16px' }}>
+                Choisissez le dossier de destination. « Racine » place le document hors de tout dossier.
+              </p>
+              <select
+                value={docMoveTargetFolderId}
+                onChange={(e) => setDocMoveTargetFolderId(e.target.value)}
+                style={{ width: '100%', padding: '10px 12px', background: 'var(--bg-raised)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', fontSize: '14px', color: 'var(--text-primary)' }}
+              >
+                <option value="">— Racine —</option>
+                {folderPathOptions().map((f) => (
+                  <option key={f.id} value={f.id}>{f.path}</option>
+                ))}
+              </select>
+              {docMoveError && (
+                <div style={{ marginTop: '10px', padding: '8px 12px', background: 'var(--red-dim)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: 'var(--radius-md)', color: 'var(--red)', fontSize: '13px' }}>
+                  {docMoveError}
+                </div>
+              )}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
+                <Button variant="secondary" onClick={() => setMovingDocument(null)} disabled={docMoveSaving}>Annuler</Button>
+                <Button variant="primary" onClick={handleMoveDocument} loading={docMoveSaving}>Déplacer</Button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Move folder modal */}
       {movingFolder && (

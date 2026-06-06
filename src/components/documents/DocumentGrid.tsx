@@ -24,6 +24,7 @@ interface DocumentGridProps {
   documents: DocumentWithRelations[]
   isLoading?: boolean
   onDelete?: (id: string) => void
+  onMove?: (id: string) => void
   viewMode?: 'grid' | 'list'
 }
 
@@ -435,7 +436,7 @@ const gridStyle: React.CSSProperties = {
   width: '100%',
 }
 
-export function DocumentGrid({ documents, isLoading = false, onDelete, viewMode = 'grid' }: DocumentGridProps) {
+export function DocumentGrid({ documents, isLoading = false, onDelete, onMove, viewMode = 'grid' }: DocumentGridProps) {
   if (isLoading) {
     if (viewMode === 'list') {
       return (
@@ -547,7 +548,7 @@ export function DocumentGrid({ documents, isLoading = false, onDelete, viewMode 
             layout
             exit="exit"
           >
-            <DocumentCard document={doc} onDelete={onDelete} />
+            <DocumentCard document={doc} onDelete={onDelete} onMove={onMove} />
           </motion.div>
         ))}
       </AnimatePresence>
