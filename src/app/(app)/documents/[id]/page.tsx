@@ -626,7 +626,85 @@ export default function DocumentDetailPage() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', flexWrap: 'wrap' }}>
               {document.category && <Badge variant="accent">{document.category.name}</Badge>}
 
-              {/* Status badge désactivé pour l'instant (workflow incomplet) */}
+              {/* Status badge with admin dropdown */}
+              <div style={{ position: 'relative' }}>
+                <button
+                  onClick={() => isAdmin && setStatusDropdownOpen(!statusDropdownOpen)}
+                  disabled={!isAdmin || changingStatus}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '3px 10px',
+                    borderRadius: '9999px',
+                    background: `${statusColor}18`,
+                    color: statusColor,
+                    border: isAdmin ? `1px solid ${statusColor}33` : 'none',
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    fontFamily: 'var(--font-body)',
+                    cursor: isAdmin ? 'pointer' : 'default',
+                    letterSpacing: '0.02em',
+                  }}
+                >
+                  {statusLabel}
+                  {isAdmin && <ChevronDown size={11} />}
+                </button>
+
+                {statusDropdownOpen && isAdmin && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: '100%',
+                      left: 0,
+                      marginTop: '4px',
+                      background: 'var(--bg-surface)',
+                      border: '1px solid var(--border)',
+                      borderRadius: 'var(--radius-md)',
+                      boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
+                      zIndex: 60,
+                      minWidth: '180px',
+                      overflow: 'hidden',
+                      backdropFilter: 'none',
+                    }}
+                  >
+                    {ALL_STATUSES.filter((s) => s !== document.status).map((s) => (
+                      <button
+                        key={s}
+                        onClick={() => handleStatusChange(s)}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          width: '100%',
+                          padding: '8px 12px',
+                          fontFamily: 'var(--font-body)',
+                          fontSize: '12px',
+                          fontWeight: 500,
+                          color: STATUS_COLORS[s],
+                          background: 'transparent',
+                          border: 'none',
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                          transition: 'background 0.1s ease',
+                        }}
+                        onMouseEnter={(e) => { (e.target as HTMLElement).style.background = 'var(--bg-surface)' }}
+                        onMouseLeave={(e) => { (e.target as HTMLElement).style.background = 'transparent' }}
+                      >
+                        <span
+                          style={{
+                            width: '8px',
+                            height: '8px',
+                            borderRadius: '50%',
+                            background: STATUS_COLORS[s],
+                          }}
+                        />
+                        {STATUS_LABELS[s]}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
 
               {/* Version badge */}
               <span
