@@ -14,6 +14,7 @@ import {
   Video,
   Music,
   Archive,
+  FolderInput,
 } from 'lucide-react'
 import { DocumentCard } from './DocumentCard'
 import { formatBytes, formatDate } from '@/lib/utils'
@@ -258,9 +259,11 @@ function EmptyState() {
 function ListRow({
   document,
   onDelete,
+  onMove,
 }: {
   document: DocumentWithRelations
   onDelete?: (id: string) => void
+  onMove?: (id: string) => void
 }) {
   const ft = getFileTypeInfo(document.mimeType)
 
@@ -274,6 +277,12 @@ function ListRow({
     e.preventDefault()
     e.stopPropagation()
     onDelete?.(document.id)
+  }
+
+  const handleMove = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    onMove?.(document.id)
   }
 
   return (
@@ -402,6 +411,22 @@ function ListRow({
         >
           <Download size={14} />
         </motion.button>
+        {onMove && (
+          <motion.button
+            onClick={handleMove}
+            whileHover={{ scale: 1.1, color: 'var(--accent)' }}
+            whileTap={{ scale: 0.9 }}
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              width: '28px', height: '28px', borderRadius: 'var(--radius-sm)',
+              background: 'transparent', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer',
+            }}
+            aria-label="Déplacer"
+            title="Déplacer dans un autre dossier"
+          >
+            <FolderInput size={14} />
+          </motion.button>
+        )}
         {onDelete && (
           <motion.button
             onClick={handleDelete}
@@ -420,6 +445,7 @@ function ListRow({
               cursor: 'pointer',
             }}
             aria-label="Supprimer"
+            title="Mettre à la corbeille"
           >
             <Trash2 size={14} />
           </motion.button>
@@ -526,7 +552,7 @@ export function DocumentGrid({ documents, isLoading = false, onDelete, onMove, v
         </div>
         <AnimatePresence mode="popLayout">
           {documents.map((doc) => (
-            <ListRow key={doc.id} document={doc} onDelete={onDelete} />
+            <ListRow key={doc.id} document={doc} onDelete={onDelete} onMove={onMove} />
           ))}
         </AnimatePresence>
       </motion.div>
