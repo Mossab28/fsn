@@ -706,12 +706,17 @@ function DocumentsPageInner() {
           </div>
         )}
 
-        <DocumentGrid
-          documents={documents}
-          isLoading={isLoading}
-          onDelete={isAdmin ? (id: string) => handleDeleteRequest(id, 'document') : undefined}
-          viewMode={viewMode}
-        />
+        {/* Only render DocumentGrid when there are docs, when loading, or when
+            actively searching. Otherwise hide it so we don't double up the
+            empty state ("Aucun document trouvé" + "Dossier vide") */}
+        {(isLoading || documents.length > 0 || searchQuery) && (
+          <DocumentGrid
+            documents={documents}
+            isLoading={isLoading}
+            onDelete={isAdmin ? (id: string) => handleDeleteRequest(id, 'document') : undefined}
+            viewMode={viewMode}
+          />
+        )}
 
         {/* Empty state for empty folder */}
         {!isLoading && folders.length === 0 && documents.length === 0 && !searchQuery && (
