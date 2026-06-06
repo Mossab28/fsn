@@ -75,7 +75,7 @@ export async function PATCH(
       title?: string
       description?: string | null
       categoryId?: string | null
-      tags?: string[]
+      tags?: string
       authorName?: string | null
       publishedAt?: Date | null
     } = {}
@@ -105,7 +105,7 @@ export async function PATCH(
       if (!Array.isArray(tags) || !tags.every((t) => typeof t === 'string')) {
         return NextResponse.json({ error: 'tags must be an array of strings' }, { status: 400 })
       }
-      updateData.tags = tags
+      updateData.tags = JSON.stringify(tags)
     }
 
     if (authorName !== undefined) {
