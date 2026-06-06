@@ -142,7 +142,7 @@ export function DocumentCard({ document, onDelete, onMove }: DocumentCardProps) 
       />
 
       {/* Top row: file icon + category badge */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px', minWidth: 0 }}>
         <div
           style={{
             width: '40px',
@@ -158,10 +158,12 @@ export function DocumentCard({ document, onDelete, onMove }: DocumentCardProps) 
         >
           {fileType.icon}
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'flex-end', flexWrap: 'nowrap', minWidth: 0, overflow: 'hidden' }}>
           <DocumentStatusBadge status={document.status as DocumentStatus} />
           {document.category && (
-            <Badge variant="accent">{document.category.name}</Badge>
+            <span style={{ maxWidth: '140px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'inline-block' }} title={document.category.name}>
+              <Badge variant="accent">{document.category.name}</Badge>
+            </span>
           )}
           <span
             style={{
@@ -175,6 +177,7 @@ export function DocumentCard({ document, onDelete, onMove }: DocumentCardProps) 
               fontWeight: 700,
               letterSpacing: '0.06em',
               textTransform: 'uppercase',
+              flexShrink: 0,
             }}
           >
             {fileType.label}
@@ -326,16 +329,23 @@ export function DocumentCard({ document, onDelete, onMove }: DocumentCardProps) 
           )}
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
           {onMove && (
-            <Button
-              variant="secondary"
-              size="sm"
-              icon={<FolderInput size={13} />}
+            <motion.button
               onClick={handleMove}
+              whileHover={{ scale: 1.05, color: 'var(--accent)' }}
+              whileTap={{ scale: 0.95 }}
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                width: '30px', height: '30px', borderRadius: 'var(--radius-sm)',
+                background: 'transparent', border: '1px solid transparent',
+                color: 'var(--text-tertiary)', cursor: 'pointer', transition: 'all var(--transition)',
+              }}
+              aria-label="Déplacer le document"
+              title="Déplacer"
             >
-              Déplacer
-            </Button>
+              <FolderInput size={14} />
+            </motion.button>
           )}
           {onDelete && (
             <motion.button
