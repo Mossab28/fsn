@@ -83,6 +83,13 @@ function DocumentsPageInner() {
   const [renamingFolder, setRenamingFolder] = useState<string | null>(null)
   const [renameValue, setRenameValue] = useState('')
 
+  // Folder move
+  const [movingFolder, setMovingFolder] = useState<string | null>(null)
+  const [moveTargetFolderId, setMoveTargetFolderId] = useState<string>('')
+  const [allFolders, setAllFolders] = useState<FolderData[]>([])
+  const [moveError, setMoveError] = useState('')
+  const [moveSaving, setMoveSaving] = useState(false)
+
   // ZIP import
   const [showZipImport, setShowZipImport] = useState(false)
   const [showUpload, setShowUpload] = useState(false)
@@ -137,6 +144,55 @@ function DocumentsPageInner() {
       .then((data) => setCategories(Array.isArray(data) ? data : []))
       .catch(() => {})
   }, [])
+
+  const fetchAllFolders = useCallback(async () => {
+    const res = await fetch('/api/folders?all=true')
+    if (res.ok) {
+      const data = await res.json()
+      if (Array.isArray(data)) setAllFolders(data)
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchAllFolders()
+  }, [fetchAllFolders, folders.length])
+
+  const handleMoveFolder = async () => {
+    if (!movingFolder) return
+    setMoveSaving(true)
+    setMoveError('')
+    try {
+      const res = await fetch(`/api/folders/${movingFolder}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ parentId: moveTargetFolderId || null }),
+      })
+      if (!res.ok) {
+        const b = await res.json()
+        throw new Error(b.error || 'Échec du déplacement')
+      }
+      setMovingFolder(null)
+      fetchContent()
+      fetchAllFolders()
+    } catch (e) {
+      setMoveError((e as Error).message)
+    } finally {
+      setMoveSaving(false)
+    }
+  }
+
+  function folderPathOptions(): { id: string; path: string }[] {
+    const byId = new Map(allFolders.map((f) => [f.id, f]))
+    const pathOf = (id: string): string => {
+      const f = byId.get(id)
+      if (!f) return ''
+      if (!f.parentId) return f.name
+      return `${pathOf(f.parentId)} / ${f.name}`
+    }
+    return allFolders
+      .map((f) => ({ id: f.id, path: pathOf(f.id) }))
+      .sort((a, b) => a.path.localeCompare(b.path, 'fr'))
+  }
 
   useEffect(() => {
     const timer = setTimeout(() => fetchContent(), 200)
@@ -594,6 +650,22 @@ function DocumentsPageInner() {
                               </button>
                               <button
                                 onClick={() => {
+                                  setMovingFolder(folder.id)
+                                  setMoveTargetFolderId(folder.parentId || '')
+                                  setMoveError('')
+                                  setContextFolder(null)
+                                }}
+                                style={{
+                                  display: 'flex', alignItems: 'center', gap: '8px', width: '100%',
+                                  padding: '8px 12px', borderRadius: 'var(--radius-sm)',
+                                  background: 'transparent', border: 'none', color: 'var(--text-primary)',
+                                  fontSize: '13px', cursor: 'pointer', fontFamily: 'var(--font-body)',
+                                }}
+                              >
+                                <FolderOpen size={14} /> Déplacer
+                              </button>
+                              <button
+                                onClick={() => {
                                   handleDeleteRequest(folder.id, 'folder')
                                   setContextFolder(null)
                                 }}
@@ -754,6 +826,58 @@ function DocumentsPageInner() {
         currentFolderId={currentFolderId}
         onSuccess={fetchContent}
       />
+
+      {/* Move folder modal */}
+      {movingFolder && (
+        <>
+          <div
+            onClick={() => !moveSaving && setMovingFolder(null)}
+            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 50 }}
+          />
+          <div
+            style={{
+              position: 'fixed', inset: 0, zIndex: 51,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', pointerEvents: 'none',
+            }}
+          >
+            <div
+              style={{
+                pointerEvents: 'auto',
+                background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-xl)',
+                padding: '28px', width: '100%', maxWidth: '440px', boxShadow: 'var(--shadow-lg)',
+              }}
+            >
+              <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 14px' }}>
+                Déplacer le dossier
+              </h3>
+              <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: '0 0 16px' }}>
+                Choisissez le dossier de destination. Sélectionnez « Racine » pour le placer au plus haut niveau.
+              </p>
+              <select
+                value={moveTargetFolderId}
+                onChange={(e) => setMoveTargetFolderId(e.target.value)}
+                style={{ width: '100%', padding: '10px 12px', background: 'var(--bg-raised)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', fontSize: '14px', color: 'var(--text-primary)' }}
+              >
+                <option value="">— Racine —</option>
+                {folderPathOptions()
+                  .filter((f) => f.id !== movingFolder)
+                  .map((f) => (
+                    <option key={f.id} value={f.id}>{f.path}</option>
+                  ))}
+              </select>
+              {moveError && (
+                <div style={{ marginTop: '10px', padding: '8px 12px', background: 'var(--red-dim)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: 'var(--radius-md)', color: 'var(--red)', fontSize: '13px' }}>
+                  {moveError}
+                </div>
+              )}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
+                <Button variant="secondary" onClick={() => setMovingFolder(null)} disabled={moveSaving}>Annuler</Button>
+                <Button variant="primary" onClick={handleMoveFolder} loading={moveSaving}>Déplacer</Button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Single file upload modal */}
       <UploadModal

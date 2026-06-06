@@ -66,6 +66,7 @@ export async function PATCH(
       title,
       description,
       categoryId,
+      folderId,
       tags,
       authorName,
       publishedAt,
@@ -75,6 +76,7 @@ export async function PATCH(
       title?: string
       description?: string | null
       categoryId?: string | null
+      folderId?: string | null
       tags?: string
       authorName?: string | null
       publishedAt?: Date | null
@@ -98,6 +100,13 @@ export async function PATCH(
       updateData.categoryId =
         typeof categoryId === 'string' && categoryId.trim()
           ? categoryId.trim()
+          : null
+    }
+
+    if (folderId !== undefined) {
+      updateData.folderId =
+        typeof folderId === 'string' && folderId.trim()
+          ? folderId.trim()
           : null
     }
 

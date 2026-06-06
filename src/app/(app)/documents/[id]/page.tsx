@@ -65,6 +65,19 @@ const ALL_STATUSES: DocumentStatus[] = [
   'ARCHIVE',
 ]
 
+function buildFolderPaths(folders: { id: string; name: string; parentId: string | null }[]): { id: string; path: string }[] {
+  const byId = new Map(folders.map((f) => [f.id, f]))
+  const pathOf = (id: string): string => {
+    const f = byId.get(id)
+    if (!f) return ''
+    if (!f.parentId) return f.name
+    return `${pathOf(f.parentId)} / ${f.name}`
+  }
+  return folders
+    .map((f) => ({ id: f.id, path: pathOf(f.id) }))
+    .sort((a, b) => a.path.localeCompare(b.path, 'fr'))
+}
+
 function getFileTypeConfig(mimeType: string) {
   const info = getFileTypeInfo(mimeType)
   return { label: info.label, color: info.color, bgColor: info.bgColor, iconName: info.kind }
@@ -108,11 +121,13 @@ export default function DocumentDetailPage() {
   const [changingStatus, setChangingStatus] = useState(false)
   const [wikiRefreshKey] = useState(0)
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([])
+  const [allFolders, setAllFolders] = useState<{ id: string; name: string; parentId: string | null }[]>([])
   const [editOpen, setEditOpen] = useState(false)
   const [editTitle, setEditTitle] = useState('')
   const [editDescription, setEditDescription] = useState('')
   const [editAuthorName, setEditAuthorName] = useState('')
   const [editCategoryId, setEditCategoryId] = useState('')
+  const [editFolderId, setEditFolderId] = useState('')
   const [editTagsInput, setEditTagsInput] = useState('')
   const [editPublishedAt, setEditPublishedAt] = useState('')
   const [savingEdit, setSavingEdit] = useState(false)
@@ -162,6 +177,10 @@ export default function DocumentDetailPage() {
       .then((r) => (r.ok ? r.json() : []))
       .then((d) => setCategories(Array.isArray(d) ? d : []))
       .catch(() => {})
+    fetch('/api/folders?all=true')
+      .then((r) => (r.ok ? r.json() : []))
+      .then((d) => setAllFolders(Array.isArray(d) ? d : []))
+      .catch(() => {})
   }, [session, sessionStatus, fetchDocument, fetchVersions, router])
 
   const openEdit = () => {
@@ -170,6 +189,7 @@ export default function DocumentDetailPage() {
     setEditDescription(document.description || '')
     setEditAuthorName(document.authorName || '')
     setEditCategoryId(document.categoryId || '')
+    setEditFolderId(document.folderId || '')
     setEditTagsInput(parseTags(document.tags || '').join(', '))
     setEditPublishedAt(
       document.publishedAt
@@ -194,6 +214,7 @@ export default function DocumentDetailPage() {
         description: editDescription.trim() || null,
         authorName: editAuthorName.trim() || null,
         categoryId: editCategoryId || null,
+        folderId: editFolderId || null,
         tags: editTagsInput
           .split(',')
           .map((t) => t.trim())
@@ -899,6 +920,17 @@ export default function DocumentDetailPage() {
                     style={{ padding: '10px 12px', background: 'var(--bg-raised)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', fontSize: '14px', color: 'var(--text-primary)' }}>
                     <option value="">— Aucune —</option>
                     {categories.map((c) => (<option key={c.id} value={c.id}>{c.name}</option>))}
+                  </select>
+                </label>
+
+                <label style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)' }}>Dossier</span>
+                  <select value={editFolderId} onChange={(e) => setEditFolderId(e.target.value)}
+                    style={{ padding: '10px 12px', background: 'var(--bg-raised)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', fontSize: '14px', color: 'var(--text-primary)' }}>
+                    <option value="">— Racine —</option>
+                    {buildFolderPaths(allFolders).map((f) => (
+                      <option key={f.id} value={f.id}>{f.path}</option>
+                    ))}
                   </select>
                 </label>
 

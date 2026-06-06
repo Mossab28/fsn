@@ -83,13 +83,36 @@ export async function PATCH(
 
   const { id } = await params
   const body = await req.json()
-  const { name, color } = body
+  const { name, color, parentId } = body
+
+  if (name !== undefined && (typeof name !== 'string' || !name.trim())) {
+    return NextResponse.json({ error: 'Nom invalide' }, { status: 400 })
+  }
+
+  // Prevent moving a folder into itself or one of its descendants
+  if (parentId !== undefined && parentId !== null) {
+    if (parentId === id) {
+      return NextResponse.json({ error: 'Un dossier ne peut pas être son propre parent' }, { status: 400 })
+    }
+    let cur: string | null = parentId
+    while (cur) {
+      if (cur === id) {
+        return NextResponse.json({ error: 'Déplacement invalide (cycle détecté)' }, { status: 400 })
+      }
+      const parent: { parentId: string | null } | null = await prisma.folder.findUnique({
+        where: { id: cur },
+        select: { parentId: true },
+      })
+      cur = parent?.parentId ?? null
+    }
+  }
 
   const folder = await prisma.folder.update({
     where: { id },
     data: {
-      ...(name && { name: name.trim() }),
+      ...(name !== undefined && { name: name.trim() }),
       ...(color !== undefined && { color }),
+      ...(parentId !== undefined && { parentId: parentId || null }),
     },
   })
 

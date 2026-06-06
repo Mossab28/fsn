@@ -24,6 +24,10 @@ export async function GET(
     if (!document) {
       return NextResponse.json({ error: 'Document not found' }, { status: 404 })
     }
+    // Archived docs are only downloadable by admins (corbeille flow)
+    if (document.isArchived && session.user.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Document not found' }, { status: 404 })
+    }
 
     const filePath = getFilePath(document.storedName)
 
