@@ -26,6 +26,7 @@ import { Button } from '@/components/ui/Button'
 import { DocumentGrid } from '@/components/documents/DocumentGrid'
 import { ImportZipModal } from '@/components/documents/ImportZipModal'
 import { UploadModal } from '@/components/documents/UploadModal'
+import { BulkUploadModal } from '@/components/documents/BulkUploadModal'
 import type { DocumentWithRelations, Category } from '@/types'
 
 type ViewMode = 'grid' | 'list'
@@ -93,6 +94,7 @@ function DocumentsPageInner() {
   // ZIP import
   const [showZipImport, setShowZipImport] = useState(false)
   const [showUpload, setShowUpload] = useState(false)
+  const [showBulkUpload, setShowBulkUpload] = useState(false)
   const [categories, setCategories] = useState<Category[]>([])
 
   // Delete confirm
@@ -299,6 +301,13 @@ function DocumentsPageInner() {
                 onClick={() => setShowNewFolder(true)}
               >
                 Nouveau dossier
+              </Button>
+              <Button
+                variant="secondary"
+                icon={<Upload size={15} />}
+                onClick={() => setShowBulkUpload(true)}
+              >
+                Lot
               </Button>
               <Button
                 variant="primary"
@@ -883,6 +892,15 @@ function DocumentsPageInner() {
       <UploadModal
         open={showUpload}
         onOpenChange={setShowUpload}
+        categories={categories}
+        onSuccess={fetchContent}
+        folderId={currentFolderId}
+      />
+
+      {/* Bulk upload modal */}
+      <BulkUploadModal
+        open={showBulkUpload}
+        onOpenChange={setShowBulkUpload}
         categories={categories}
         onSuccess={fetchContent}
         folderId={currentFolderId}
