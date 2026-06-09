@@ -257,7 +257,7 @@ export function DocumentCard({ document, onDelete, onMove }: DocumentCardProps) 
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          gap: '8px',
+          gap: '16px',
           paddingTop: '12px',
           borderTop: '1px solid var(--border-subtle)',
         }}
