@@ -158,7 +158,7 @@ export function DocumentCard({ document, onDelete, onMove }: DocumentCardProps) 
         >
           {fileType.icon}
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'flex-end', flexWrap: 'nowrap', minWidth: 0, overflow: 'hidden' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'flex-end', flexWrap: 'wrap', minWidth: 0 }}>
           <DocumentStatusBadge status={document.status as DocumentStatus} />
           {document.category && (() => {
             const tint = document.category.color ?? '#00A88E'
@@ -172,8 +172,8 @@ export function DocumentCard({ document, onDelete, onMove }: DocumentCardProps) 
                   border: `1px solid ${tint}40`,
                   color: tint,
                   fontFamily: 'var(--font-body)', fontSize: '11px', fontWeight: 600,
-                  maxWidth: '140px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                  flexShrink: 0,
+                  maxWidth: '160px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  flexShrink: 0, minWidth: 0,
                 }}
               >
                 <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: tint, flexShrink: 0 }} />
