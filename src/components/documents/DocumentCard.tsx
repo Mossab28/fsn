@@ -262,7 +262,7 @@ export function DocumentCard({ document, onDelete, onMove }: DocumentCardProps) 
           borderTop: '1px solid var(--border-subtle)',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1, minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1, minWidth: 0, marginRight: '12px' }}>
           <span
             style={{
               fontSize: '11px',
