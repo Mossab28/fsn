@@ -141,12 +141,13 @@ export function BulkUploadModal({ open, onOpenChange, categories, onSuccess, fol
               />
             </Dialog.Overlay>
             <Dialog.Content asChild>
+              <div style={{ position: 'fixed', inset: 0, zIndex: 51, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', pointerEvents: 'none' }}>
               <motion.div
                 initial={{ opacity: 0, scale: 0.96, y: 14 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.96, y: 14 }}
                 style={{
-                  position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 51,
+                  pointerEvents: 'auto',
                   background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-xl)',
                   width: 'min(720px, calc(100vw - 40px))', maxHeight: '90vh', overflowY: 'auto',
                   padding: '28px', boxShadow: 'var(--shadow-lg)',
@@ -276,6 +277,7 @@ export function BulkUploadModal({ open, onOpenChange, categories, onSuccess, fol
                   </div>
                 </div>
               </motion.div>
+              </div>
             </Dialog.Content>
           </Dialog.Portal>
         )}

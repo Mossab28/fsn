@@ -62,6 +62,7 @@ export function Dialog({
 
             {/* Dialog panel */}
             <RadixDialog.Content asChild>
+              <div style={{ position: 'fixed', inset: 0, zIndex: 51, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', pointerEvents: 'none' }}>
               <motion.div
                 key="dialog-content"
                 initial={{ opacity: 0, y: 16, scale: 0.97 }}
@@ -69,16 +70,12 @@ export function Dialog({
                 exit={{ opacity: 0, y: 8, scale: 0.98 }}
                 transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
                 style={{
-                  position: 'fixed',
-                  top: '50%',
-                  left: '50%',
-                  transform: 'translate(-50%, -50%)',
+                  pointerEvents: 'auto',
                   width: `min(${typeof maxWidth === 'number' ? `${maxWidth}px` : maxWidth}, calc(100vw - 32px))`,
                   background: 'var(--bg-surface)',
                   border: '1px solid var(--border)',
                   borderRadius: 'var(--radius-xl)',
                   boxShadow: 'var(--shadow-lg), 0 0 0 1px var(--border-subtle)',
-                  zIndex: 51,
                   outline: 'none',
                   overflow: 'hidden',
                 }}
@@ -159,6 +156,7 @@ export function Dialog({
                   {children}
                 </div>
               </motion.div>
+              </div>
             </RadixDialog.Content>
           </RadixDialog.Portal>
         )}

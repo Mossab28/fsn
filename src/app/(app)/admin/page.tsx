@@ -67,28 +67,26 @@ function ModalOverlay({ children, onClose }: { children: React.ReactNode; onClos
           zIndex: 50,
         }}
       />
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        transition={{ duration: 0.2 }}
-        style={{
-          position: 'fixed',
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          background: 'var(--bg-surface)',
-          border: '1px solid var(--border)',
-          borderRadius: 'var(--radius-xl)',
-          padding: '28px',
-          width: '100%',
-          maxWidth: '460px',
-          zIndex: 51,
-          boxShadow: 'var(--shadow-lg)',
-        }}
-      >
-        {children}
-      </motion.div>
+      <div style={{ position: 'fixed', inset: 0, zIndex: 51, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', pointerEvents: 'none' }}>
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: 20 }}
+          transition={{ duration: 0.2 }}
+          style={{
+            pointerEvents: 'auto',
+            background: 'var(--bg-surface)',
+            border: '1px solid var(--border)',
+            borderRadius: 'var(--radius-xl)',
+            padding: '28px',
+            width: '100%',
+            maxWidth: '460px',
+            boxShadow: 'var(--shadow-lg)',
+          }}
+        >
+          {children}
+        </motion.div>
+      </div>
     </>
   )
 }
