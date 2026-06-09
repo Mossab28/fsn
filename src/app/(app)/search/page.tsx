@@ -1608,70 +1608,46 @@ export default function SearchPage() {
             {categories.length > 0 ? (
               <div
                 style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-                  gap: '12px',
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  gap: '8px',
                 }}
               >
-                {categories.map((cat, i) => (
-                  <motion.button
-                    key={cat.id}
-                    initial={{ opacity: 0, y: 12 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.04 }}
-                    onClick={() => {
-                      setSelectedCategories([cat.id])
-                      setHasSearched(true)
-                      performSearch(query)
-                    }}
-                    whileHover={{ y: -2, boxShadow: 'var(--shadow-accent)', borderColor: 'var(--accent)' }}
-                    whileTap={{ scale: 0.97 }}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '12px',
-                      padding: '16px',
-                      background: 'var(--bg-surface)',
-                      border: '1px solid var(--border)',
-                      borderRadius: 'var(--radius-lg)',
-                      cursor: 'pointer',
-                      textAlign: 'left',
-                      transition: 'all var(--transition)',
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: '36px',
-                        height: '36px',
-                        borderRadius: 'var(--radius-md)',
-                        background: cat.color ? `${cat.color}20` : 'var(--accent-dim)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: cat.color ?? 'var(--accent)',
-                        flexShrink: 0,
+                {categories.map((cat, i) => {
+                  const tint = cat.color ?? '#00A88E'
+                  return (
+                    <motion.button
+                      key={cat.id}
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.03 }}
+                      onClick={() => {
+                        setSelectedCategories([cat.id])
+                        setHasSearched(true)
+                        performSearch(query)
                       }}
-                    >
-                      {(() => {
-                        const IconComponent = cat.icon ? ICON_MAP[cat.icon] : undefined
-                        return IconComponent ? <IconComponent size={16} /> : <FolderOpen size={16} />
-                      })()}
-                    </div>
-                    <span
+                      whileHover={{ scale: 1.04 }}
+                      whileTap={{ scale: 0.97 }}
                       style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        padding: '6px 12px',
+                        background: `${tint}18`,
+                        border: `1px solid ${tint}40`,
+                        color: tint,
+                        borderRadius: '9999px',
+                        cursor: 'pointer',
                         fontFamily: 'var(--font-body)',
                         fontSize: '13px',
                         fontWeight: 600,
-                        color: 'var(--text-primary)',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
                       }}
                     >
+                      <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: tint }} />
                       {cat.name}
-                    </span>
-                  </motion.button>
-                ))}
+                    </motion.button>
+                  )
+                })}
               </div>
             ) : (
               <div
