@@ -51,7 +51,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   try {
-    const formData = await request.formData()
+    let formData: FormData
+    try {
+      formData = await request.formData()
+    } catch {
+      return NextResponse.json({ error: 'Corps de requête invalide (multipart/form-data attendu)' }, { status: 400 })
+    }
     const zipFile = formData.get('file')
     if (!(zipFile instanceof File)) {
       return NextResponse.json({ error: 'Fichier ZIP requis' }, { status: 400 })

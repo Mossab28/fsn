@@ -11,6 +11,7 @@ const DB_PATH = 'prisma/dev.db'
 const LEGACY_EMAILS = ['admin@fsn.fr', 'membre@fsn.fr', 'lecteur@fsn.fr']
 
 const ACCOUNTS = [
+  { email: 'robert.picard@fsn.fr', password: 'Robert2026!', name: 'Robert Picard', role: 'ADMIN' },
   { email: 'client@test.fsn', password: 'Client2026!', name: 'Client Démo', role: 'ADMIN' },
   { email: 'mossab@fsn.fr', password: 'Mossab2026!', name: 'Mossab Mirande-Ney', role: 'ADMIN' },
 ]

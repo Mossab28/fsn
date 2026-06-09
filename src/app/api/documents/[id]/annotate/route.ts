@@ -108,7 +108,12 @@ export async function POST(
       )
     }
 
-    const formData = await request.formData()
+    let formData: FormData
+    try {
+      formData = await request.formData()
+    } catch {
+      return NextResponse.json({ error: 'Corps de requête invalide' }, { status: 400 })
+    }
     const file = formData.get('file')
     const note = formData.get('note')
 

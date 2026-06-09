@@ -3,9 +3,9 @@ import { NextResponse } from 'next/server'
 
 // Role-based route access matrix
 const ROLE_ACCESS: Record<string, string[]> = {
-  READER: ['/dashboard', '/documents', '/search', '/annuaire', '/profil'],
-  MEMBER: ['/dashboard', '/documents', '/search', '/annuaire', '/profil'],
-  ADMIN: ['/dashboard', '/documents', '/search', '/annuaire', '/profil', '/admin'],
+  READER: ['/dashboard', '/documents', '/search', '/annuaire', '/profil', '/parametres'],
+  MEMBER: ['/dashboard', '/documents', '/search', '/annuaire', '/profil', '/parametres'],
+  ADMIN: ['/dashboard', '/documents', '/search', '/annuaire', '/profil', '/parametres', '/admin', '/corbeille'],
 }
 
 function hasRouteAccess(role: string, pathname: string): boolean {
@@ -22,8 +22,8 @@ export default withAuth(
     const pathname = req.nextUrl.pathname
     const role = (token?.role as string) ?? 'READER'
 
-    // Admin route protection (keep existing logic)
-    if (pathname.startsWith('/admin') && role !== 'ADMIN') {
+    // Admin-only routes
+    if ((pathname.startsWith('/admin') || pathname.startsWith('/corbeille')) && role !== 'ADMIN') {
       return NextResponse.redirect(new URL('/dashboard', req.url))
     }
 
@@ -49,5 +49,7 @@ export const config = {
     '/admin/:path*',
     '/annuaire/:path*',
     '/profil/:path*',
+    '/parametres/:path*',
+    '/corbeille/:path*',
   ],
 }
