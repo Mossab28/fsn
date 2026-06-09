@@ -160,11 +160,27 @@ export function DocumentCard({ document, onDelete, onMove }: DocumentCardProps) 
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'flex-end', flexWrap: 'nowrap', minWidth: 0, overflow: 'hidden' }}>
           <DocumentStatusBadge status={document.status as DocumentStatus} />
-          {document.category && (
-            <span style={{ maxWidth: '140px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'inline-block' }} title={document.category.name}>
-              <Badge variant="accent">{document.category.name}</Badge>
-            </span>
-          )}
+          {document.category && (() => {
+            const tint = document.category.color ?? '#00A88E'
+            return (
+              <span
+                title={document.category.name}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: '5px',
+                  padding: '3px 10px', borderRadius: '9999px',
+                  background: `${tint}1A`,
+                  border: `1px solid ${tint}40`,
+                  color: tint,
+                  fontFamily: 'var(--font-body)', fontSize: '11px', fontWeight: 600,
+                  maxWidth: '140px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  flexShrink: 0,
+                }}
+              >
+                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: tint, flexShrink: 0 }} />
+                {document.category.name}
+              </span>
+            )
+          })()}
           <span
             style={{
               display: 'inline-flex',
@@ -262,7 +278,7 @@ export function DocumentCard({ document, onDelete, onMove }: DocumentCardProps) 
           borderTop: '1px solid var(--border-subtle)',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1, minWidth: 0, marginRight: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0, marginRight: '20px' }}>
           <span
             style={{
               fontSize: '11px',
@@ -286,47 +302,6 @@ export function DocumentCard({ document, onDelete, onMove }: DocumentCardProps) 
           >
             v{document.currentVersion}
           </span>
-          {parseTags(document.tags).length > 0 && (
-            <>
-              <span style={{ color: 'var(--border)', fontSize: '11px', flexShrink: 0 }}>·</span>
-              <div
-                style={{
-                  display: 'flex',
-                  gap: '4px',
-                  overflowX: 'auto',
-                  flex: 1,
-                  minWidth: 0,
-                  scrollbarWidth: 'none',
-                  msOverflowStyle: 'none',
-                  WebkitOverflowScrolling: 'touch',
-                  maskImage: 'linear-gradient(to right, black 85%, transparent 100%)',
-                  WebkitMaskImage: 'linear-gradient(to right, black 85%, transparent 100%)',
-                }}
-              >
-                {parseTags(document.tags).map((tag) => {
-                  const color = getTagColor(tag)
-                  return (
-                    <span
-                      key={tag}
-                      style={{
-                        fontSize: '10px',
-                        padding: '2px 8px',
-                        borderRadius: '9999px',
-                        background: color.bg,
-                        color: color.text,
-                        border: `1px solid ${color.border}`,
-                        whiteSpace: 'nowrap',
-                        fontWeight: 500,
-                        flexShrink: 0,
-                      }}
-                    >
-                      {tag}
-                    </span>
-                  )
-                })}
-              </div>
-            </>
-          )}
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
