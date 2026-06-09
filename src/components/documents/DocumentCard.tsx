@@ -333,13 +333,14 @@ export function DocumentCard({ document, onDelete, onMove }: DocumentCardProps) 
           {onMove && (
             <motion.button
               onClick={handleMove}
-              whileHover={{ scale: 1.05, color: 'var(--accent)' }}
+              whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.95 }}
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 width: '30px', height: '30px', borderRadius: 'var(--radius-sm)',
-                background: 'transparent', border: '1px solid transparent',
-                color: 'var(--text-tertiary)', cursor: 'pointer', transition: 'all var(--transition)',
+                background: 'rgba(0, 168, 142, 0.12)',
+                border: '1px solid rgba(0, 168, 142, 0.25)',
+                color: 'var(--accent)', cursor: 'pointer', transition: 'all var(--transition)',
               }}
               aria-label="Déplacer le document"
               title="Déplacer"

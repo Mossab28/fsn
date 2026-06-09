@@ -414,12 +414,14 @@ function ListRow({
         {onMove && (
           <motion.button
             onClick={handleMove}
-            whileHover={{ scale: 1.1, color: 'var(--accent)' }}
+            whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
             style={{
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               width: '28px', height: '28px', borderRadius: 'var(--radius-sm)',
-              background: 'transparent', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer',
+              background: 'rgba(0, 168, 142, 0.12)',
+              border: '1px solid rgba(0, 168, 142, 0.25)',
+              color: 'var(--accent)', cursor: 'pointer',
             }}
             aria-label="Déplacer"
             title="Déplacer dans un autre dossier"
