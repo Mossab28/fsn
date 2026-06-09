@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import { useSession } from 'next-auth/react'
+import { Button } from '@/components/ui/Button'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Search,
@@ -76,7 +78,14 @@ const ALL_STATUSES: DocumentStatus[] = ['BROUILLON', 'ENRICHISSEMENT', 'RELECTUR
 
 export default function SearchPage() {
   const router = useRouter()
+  const { data: session } = useSession()
+  const isAdmin = session?.user?.role === 'ADMIN'
   const [query, setQuery] = useState('')
+  const [allFolders, setAllFolders] = useState<{ id: string; name: string; parentId: string | null }[]>([])
+  const [movingDocument, setMovingDocument] = useState<string | null>(null)
+  const [docMoveTargetFolderId, setDocMoveTargetFolderId] = useState<string>('')
+  const [docMoveError, setDocMoveError] = useState('')
+  const [docMoveSaving, setDocMoveSaving] = useState(false)
   const [results, setResults] = useState<DocumentWithRelations[]>([])
   const [folderResults, setFolderResults] = useState<FolderResult[]>([])
   const [categories, setCategories] = useState<(Category & { documentCount?: number })[]>([])
@@ -120,6 +129,11 @@ export default function SearchPage() {
       .then((r) => r.json())
       .then((data: Folder[]) => setFolders(Array.isArray(data) ? data : []))
       .catch(console.error)
+
+    fetch('/api/folders?all=true')
+      .then((r) => r.json())
+      .then((d) => setAllFolders(Array.isArray(d) ? d : []))
+      .catch(() => {})
 
     inputRef.current?.focus()
   }, [])
@@ -1474,6 +1488,12 @@ export default function SearchPage() {
                     documents={results}
                     isLoading={isLoading}
                     viewMode={viewMode}
+                    onMove={isAdmin ? (id: string) => {
+                      const doc = results.find((d) => d.id === id)
+                      setDocMoveTargetFolderId(doc?.folderId || '')
+                      setDocMoveError('')
+                      setMovingDocument(id)
+                    } : undefined}
                   />
                 ) : folderResults.length > 0 ? null : (
                   /* No results state */
@@ -1668,6 +1688,78 @@ export default function SearchPage() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Move document modal */}
+      {movingDocument && (
+        <>
+          <div
+            onClick={() => !docMoveSaving && setMovingDocument(null)}
+            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 50 }}
+          />
+          <div style={{ position: 'fixed', inset: 0, zIndex: 51, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', pointerEvents: 'none' }}>
+            <div style={{ pointerEvents: 'auto', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-xl)', padding: '28px', width: '100%', maxWidth: '440px', boxShadow: 'var(--shadow-lg)' }}>
+              <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 14px' }}>
+                Déplacer le document
+              </h3>
+              <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: '0 0 16px' }}>
+                Choisissez le dossier de destination.
+              </p>
+              <select
+                value={docMoveTargetFolderId}
+                onChange={(e) => setDocMoveTargetFolderId(e.target.value)}
+                style={{ width: '100%', padding: '10px 12px', background: 'var(--bg-raised)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', fontSize: '14px', color: 'var(--text-primary)' }}
+              >
+                <option value="">— Racine —</option>
+                {(() => {
+                  const byId = new Map(allFolders.map((f) => [f.id, f]))
+                  const pathOf = (id: string): string => {
+                    const f = byId.get(id)
+                    if (!f) return ''
+                    if (!f.parentId) return f.name
+                    return `${pathOf(f.parentId)} / ${f.name}`
+                  }
+                  return allFolders
+                    .map((f) => ({ id: f.id, path: pathOf(f.id) }))
+                    .sort((a, b) => a.path.localeCompare(b.path, 'fr'))
+                    .map((f) => (<option key={f.id} value={f.id}>{f.path}</option>))
+                })()}
+              </select>
+              {docMoveError && (
+                <div style={{ marginTop: '10px', padding: '8px 12px', background: 'var(--red-dim)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: 'var(--radius-md)', color: 'var(--red)', fontSize: '13px' }}>
+                  {docMoveError}
+                </div>
+              )}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
+                <Button variant="secondary" onClick={() => setMovingDocument(null)} disabled={docMoveSaving}>Annuler</Button>
+                <Button variant="primary" loading={docMoveSaving}
+                  onClick={async () => {
+                    if (!movingDocument) return
+                    setDocMoveSaving(true)
+                    setDocMoveError('')
+                    try {
+                      const res = await fetch(`/api/documents/${movingDocument}`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ folderId: docMoveTargetFolderId || null }),
+                      })
+                      if (!res.ok) {
+                        const b = await res.json()
+                        throw new Error(b.error || 'Échec du déplacement')
+                      }
+                      setMovingDocument(null)
+                      // Refresh results: simplest is re-run the search via state changes; for now just remove the moved doc from current view
+                      setResults((prev) => prev.map((d) => d.id === movingDocument ? { ...d, folderId: docMoveTargetFolderId || null } : d))
+                    } catch (e) {
+                      setDocMoveError((e as Error).message)
+                    } finally {
+                      setDocMoveSaving(false)
+                    }
+                  }}>Déplacer</Button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   )
 }
