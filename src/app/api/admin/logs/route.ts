@@ -11,7 +11,10 @@ export async function GET(request: NextRequest) {
 
   const { searchParams } = new URL(request.url)
   const page = Math.max(1, parseInt(searchParams.get('page') ?? '1'))
-  const pageSize = Math.min(100, parseInt(searchParams.get('pageSize') ?? '50'))
+  // Accept ?limit= as an alias for pageSize. Cap raised to 1000 so admins
+  // can audit full history (was hardcoded at 100 which silently capped queries).
+  const rawSize = searchParams.get('pageSize') ?? searchParams.get('limit') ?? '50'
+  const pageSize = Math.min(1000, Math.max(1, parseInt(rawSize) || 50))
   const userId = searchParams.get('userId') ?? undefined
   const action = searchParams.get('action') as LogAction | null
   const entityType = searchParams.get('entityType') ?? undefined
