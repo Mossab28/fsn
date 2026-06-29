@@ -683,8 +683,8 @@ function DocumentsPageInner() {
                       )}
                     </div>
 
-                    {/* Context menu button */}
-                    {isAdmin && (
+                    {/* Context menu button — caché pendant le rename pour libérer la place */}
+                    {isAdmin && renamingFolder !== folder.id && (
                       <div style={{ position: 'relative', flexShrink: 0 }}>
                         <button
                           onClick={(e) => {
