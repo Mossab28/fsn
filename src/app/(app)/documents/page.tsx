@@ -19,6 +19,8 @@ import {
   Pencil,
   FolderOpen,
   Archive,
+  Check,
+  X,
 } from 'lucide-react'
 import { useSession } from 'next-auth/react'
 import { PageHeader } from '@/components/layout/PageHeader'
@@ -270,14 +272,24 @@ function DocumentsPageInner() {
 
   const handleRenameFolder = async (folderId: string) => {
     if (!renameValue.trim()) return
-    await fetch(`/api/folders/${folderId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: renameValue.trim() }),
-    })
-    setRenamingFolder(null)
-    setRenameValue('')
-    fetchContent()
+    try {
+      const res = await fetch(`/api/folders/${folderId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: renameValue.trim() }),
+      })
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        alert(body.error || `Échec du renommage (HTTP ${res.status})`)
+        return
+      }
+      setRenamingFolder(null)
+      setRenameValue('')
+      fetchContent()
+      fetchAllFolders()
+    } catch (e) {
+      alert('Erreur réseau lors du renommage: ' + (e as Error).message)
+    }
   }
 
   const handleDeleteRequest = (id: string, type: 'document' | 'folder') => {
@@ -617,19 +629,45 @@ function DocumentsPageInner() {
 
                     <div style={{ flex: 1, minWidth: 0 }}>
                       {renamingFolder === folder.id ? (
-                        <input
-                          autoFocus
-                          value={renameValue}
-                          onChange={(e) => setRenameValue(e.target.value)}
-                          onKeyDown={(e) => {
-                            e.stopPropagation()
-                            if (e.key === 'Enter') handleRenameFolder(folder.id)
-                            if (e.key === 'Escape') setRenamingFolder(null)
-                          }}
-                          onClick={(e) => e.stopPropagation()}
-                          className="input-base"
-                          style={{ width: '100%', padding: '4px 8px', fontSize: '13px', fontFamily: 'var(--font-body)' }}
-                        />
+                        <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }} onClick={(e) => e.stopPropagation()}>
+                          <input
+                            autoFocus
+                            value={renameValue}
+                            onChange={(e) => setRenameValue(e.target.value)}
+                            onKeyDown={(e) => {
+                              e.stopPropagation()
+                              if (e.key === 'Enter') handleRenameFolder(folder.id)
+                              if (e.key === 'Escape') { setRenamingFolder(null); setRenameValue('') }
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                            className="input-base"
+                            style={{ flex: 1, minWidth: 0, padding: '4px 8px', fontSize: '13px', fontFamily: 'var(--font-body)' }}
+                          />
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleRenameFolder(folder.id) }}
+                            title="Enregistrer"
+                            style={{
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              width: '26px', height: '26px', borderRadius: 'var(--radius-sm)',
+                              background: 'var(--accent)', color: '#fff', border: 'none',
+                              cursor: 'pointer', flexShrink: 0,
+                            }}
+                          >
+                            <Check size={14} />
+                          </button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setRenamingFolder(null); setRenameValue('') }}
+                            title="Annuler"
+                            style={{
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              width: '26px', height: '26px', borderRadius: 'var(--radius-sm)',
+                              background: 'var(--bg-raised)', color: 'var(--text-secondary)', border: '1px solid var(--border)',
+                              cursor: 'pointer', flexShrink: 0,
+                            }}
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
                       ) : (
                         <>
                           <div style={{
@@ -946,11 +984,26 @@ function DocumentsPageInner() {
                 style={{ width: '100%', padding: '10px 12px', background: 'var(--bg-raised)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', fontSize: '14px', color: 'var(--text-primary)' }}
               >
                 <option value="">— Racine —</option>
-                {folderPathOptions()
-                  .filter((f) => f.id !== movingFolder)
-                  .map((f) => (
-                    <option key={f.id} value={f.id}>{f.path}</option>
-                  ))}
+                {(() => {
+                  // Exclude movingFolder itself + all its descendants to prevent cycles in UI
+                  const byId = new Map(allFolders.map((f) => [f.id, f]))
+                  const descendantIds = new Set<string>()
+                  if (movingFolder) {
+                    const stack: string[] = [movingFolder]
+                    while (stack.length) {
+                      const cur = stack.pop()!
+                      for (const f of allFolders) {
+                        if (f.parentId === cur && !descendantIds.has(f.id)) {
+                          descendantIds.add(f.id)
+                          stack.push(f.id)
+                        }
+                      }
+                    }
+                  }
+                  return folderPathOptions()
+                    .filter((f) => f.id !== movingFolder && !descendantIds.has(f.id))
+                    .map((f) => (<option key={f.id} value={f.id}>{f.path}</option>))
+                })()}
               </select>
               {moveError && (
                 <div style={{ marginTop: '10px', padding: '8px 12px', background: 'var(--red-dim)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: 'var(--radius-md)', color: 'var(--red)', fontSize: '13px' }}>
