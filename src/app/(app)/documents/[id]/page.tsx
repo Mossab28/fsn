@@ -249,11 +249,16 @@ export default function DocumentDetailPage() {
     setDeleting(true)
     try {
       const res = await fetch(`/api/documents/${document.id}/archive`, { method: 'PATCH' })
-      if (!res.ok) throw new Error('Échec de la suppression')
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        throw new Error(body.error || `Échec de la suppression (HTTP ${res.status})`)
+      }
       // Redirect to corbeille so the admin sees where the doc went
       router.push(isAdmin ? '/corbeille' : '/documents')
-    } catch {
+    } catch (e) {
+      alert((e as Error).message)
       setDeleting(false)
+      setDeleteOpen(false)
     }
   }
 
@@ -267,12 +272,14 @@ export default function DocumentDetailPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus }),
       })
-      if (res.ok) {
-        const updated = await res.json()
-        setDocument(updated)
+      const parsed = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        alert(parsed.error || `Échec du changement de statut (HTTP ${res.status})`)
+        return
       }
-    } catch {
-      // silent
+      setDocument(parsed)
+    } catch (e) {
+      alert('Erreur réseau lors du changement de statut: ' + (e as Error).message)
     } finally {
       setChangingStatus(false)
     }

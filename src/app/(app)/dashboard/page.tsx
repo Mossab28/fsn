@@ -28,25 +28,27 @@ export default async function DashboardPage() {
   const now = new Date()
   const greeting = getGreeting(now.getHours())
 
-  // Fetch all data concurrently
+  // Fetch all data concurrently. All document queries exclude archived items
+  // so the dashboard reflects what's actually visible to the user.
   const [totalDocuments, totalCategories, totalUsers, recentDocuments, categoriesWithCount, totalFileSizeAgg] =
     await Promise.all([
-      prisma.document.count(),
+      prisma.document.count({ where: { isArchived: false } }),
       prisma.category.count(),
       prisma.user.count(),
       prisma.document.findMany({
+        where: { isArchived: false },
         take: 5,
         orderBy: { createdAt: 'desc' },
         include: { category: true, uploader: true },
       }),
       prisma.category.findMany({
         include: {
-          _count: { select: { documents: true } },
+          _count: { select: { documents: { where: { isArchived: false } } } },
         },
         orderBy: { documents: { _count: 'desc' } },
         take: 8,
       }),
-      prisma.document.aggregate({ _sum: { fileSize: true } }),
+      prisma.document.aggregate({ where: { isArchived: false }, _sum: { fileSize: true } }),
     ])
 
   const totalStorage = totalFileSizeAgg._sum.fileSize ?? 0

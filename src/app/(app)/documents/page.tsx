@@ -255,19 +255,29 @@ function DocumentsPageInner() {
 
   const handleCreateFolder = async () => {
     if (!newFolderName.trim()) return
-    await fetch('/api/folders', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name: newFolderName.trim(),
-        color: newFolderColor,
-        parentId: currentFolderId,
-      }),
-    })
-    setNewFolderName('')
-    setNewFolderColor(null)
-    setShowNewFolder(false)
-    fetchContent()
+    try {
+      const res = await fetch('/api/folders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: newFolderName.trim(),
+          color: newFolderColor,
+          parentId: currentFolderId,
+        }),
+      })
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        alert(body.error || `Échec de la création du dossier (HTTP ${res.status})`)
+        return
+      }
+      setNewFolderName('')
+      setNewFolderColor(null)
+      setShowNewFolder(false)
+      fetchContent()
+      fetchAllFolders()
+    } catch (e) {
+      alert('Erreur réseau lors de la création du dossier: ' + (e as Error).message)
+    }
   }
 
   const handleRenameFolder = async (folderId: string) => {

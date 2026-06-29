@@ -110,22 +110,28 @@ export default function CorbeillePage() {
   const handleEmptyTrash = async () => {
     setEmptying(true)
     setError('')
+    const failures: string[] = []
     for (const item of items) {
       try {
-        await fetch(`/api/documents/${item.id}`, { method: 'DELETE' })
-      } catch {
-        // continue
+        const res = await fetch(`/api/documents/${item.id}`, { method: 'DELETE' })
+        if (!res.ok) failures.push(`Document "${item.title}" (HTTP ${res.status})`)
+      } catch (e) {
+        failures.push(`Document "${item.title}" — ${(e as Error).message}`)
       }
     }
     for (const folder of folderItems) {
       try {
-        await fetch(`/api/folders/${folder.id}`, { method: 'DELETE' })
-      } catch {
-        // continue
+        const res = await fetch(`/api/folders/${folder.id}`, { method: 'DELETE' })
+        if (!res.ok) failures.push(`Dossier "${folder.name}" (HTTP ${res.status})`)
+      } catch (e) {
+        failures.push(`Dossier "${folder.name}" — ${(e as Error).message}`)
       }
     }
     setEmptying(false)
     setConfirmEmpty(false)
+    if (failures.length > 0) {
+      setError(`${failures.length} élément(s) n'ont pas pu être supprimés : ${failures.slice(0, 3).join(' ; ')}${failures.length > 3 ? '…' : ''}`)
+    }
     fetchTrash()
   }
 
