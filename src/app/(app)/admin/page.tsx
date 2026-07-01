@@ -29,6 +29,7 @@ import {
   FilePenLine,
   FolderPlus,
   UsersRound,
+  Pencil,
 } from 'lucide-react'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Button } from '@/components/ui/Button'
@@ -495,6 +496,13 @@ function CategoriesTab() {
   const [newColor, setNewColor] = useState('#00C9A7')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState('')
+  const [editCat, setEditCat] = useState<CategoryWithCount | null>(null)
+  const [editName, setEditName] = useState('')
+  const [editDescription, setEditDescription] = useState('')
+  const [editColor, setEditColor] = useState('#00C9A7')
+  const [deleteCatId, setDeleteCatId] = useState<string | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState('')
 
   const loadCategories = useCallback(async () => {
     setIsLoading(true)
@@ -533,6 +541,49 @@ function CategoriesTab() {
       setSubmitError((err as Error).message)
     } finally {
       setIsSubmitting(false)
+    }
+  }
+
+  const handleEdit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editCat) return
+    setIsSubmitting(true)
+    setSubmitError('')
+    try {
+      const res = await fetch(`/api/categories/${editCat.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: editName, description: editDescription, color: editColor }),
+      })
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        throw new Error(body.error ?? 'Erreur lors de la modification')
+      }
+      setEditCat(null)
+      loadCategories()
+    } catch (err) {
+      setSubmitError((err as Error).message)
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const confirmDelete = async () => {
+    if (!deleteCatId) return
+    setIsDeleting(true)
+    setDeleteError('')
+    try {
+      const res = await fetch(`/api/categories/${deleteCatId}`, { method: 'DELETE' })
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        throw new Error(body.error ?? 'Échec de la suppression')
+      }
+      setDeleteCatId(null)
+      loadCategories()
+    } catch (err) {
+      setDeleteError((err as Error).message)
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -605,6 +656,22 @@ function CategoriesTab() {
               >
                 /{cat.slug}
               </span>
+              <Button
+                variant="secondary"
+                size="sm"
+                icon={<Pencil size={13} />}
+                onClick={() => { setEditCat(cat); setEditName(cat.name); setEditDescription(cat.description || ''); setEditColor(cat.color || '#00C9A7') }}
+              >
+                Modifier
+              </Button>
+              <Button
+                variant="danger"
+                size="sm"
+                icon={<Trash2 size={13} />}
+                onClick={() => setDeleteCatId(cat.id)}
+              >
+                Supprimer
+              </Button>
             </motion.div>
           ))}
 
@@ -668,7 +735,49 @@ function CategoriesTab() {
             </form>
           </ModalOverlay>
         )}
+
+        {editCat && (
+          <ModalOverlay onClose={() => { setEditCat(null); setSubmitError('') }}>
+            <ModalHeader title="Modifier la catégorie" onClose={() => { setEditCat(null); setSubmitError('') }} />
+            <form onSubmit={handleEdit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <Input label="Nom" value={editName} onChange={(e) => setEditName(e.target.value)} required />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <label style={{ fontSize: '12px', fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Description</label>
+                <textarea value={editDescription} onChange={(e) => setEditDescription(e.target.value)} rows={2}
+                  style={{ padding: '9px 12px', background: 'var(--bg-raised)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', fontSize: '14px', color: 'var(--text-primary)', resize: 'vertical', fontFamily: 'inherit' }} />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <label style={{ fontSize: '12px', fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Couleur</label>
+                <input type="color" value={editColor} onChange={(e) => setEditColor(e.target.value)}
+                  style={{ width: '60px', height: '36px', padding: 2, border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', background: 'var(--bg-raised)', cursor: 'pointer' }} />
+              </div>
+              {submitError && (
+                <div style={{ padding: '8px 12px', background: 'var(--red-dim)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: 'var(--radius-md)', color: 'var(--red)', fontSize: '13px' }}>
+                  {submitError}
+                </div>
+              )}
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '8px' }}>
+                <Button type="button" variant="secondary" onClick={() => setEditCat(null)}>Annuler</Button>
+                <Button type="submit" variant="primary" loading={isSubmitting}>
+                  {isSubmitting ? 'Enregistrement...' : 'Enregistrer'}
+                </Button>
+              </div>
+            </form>
+          </ModalOverlay>
+        )}
       </AnimatePresence>
+
+      <ConfirmDialog
+        open={!!deleteCatId}
+        title="Supprimer cette catégorie"
+        description="Les documents rattachés à cette catégorie seront conservés mais deviendront « sans catégorie ». Action irréversible."
+        confirmLabel="Supprimer"
+        variant="danger"
+        loading={isDeleting}
+        error={deleteError}
+        onConfirm={confirmDelete}
+        onCancel={() => { setDeleteCatId(null); setDeleteError('') }}
+      />
     </div>
   )
 }
