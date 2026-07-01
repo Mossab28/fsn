@@ -64,6 +64,24 @@ export async function PATCH(
       if (!isValidRole(role)) {
         return NextResponse.json({ error: 'Invalid role' }, { status: 400 })
       }
+      // Prevent self-demotion: an admin cannot remove their own ADMIN role.
+      // If they were the only admin, the platform would be unmanageable.
+      if (id === session.user.id && role !== 'ADMIN') {
+        return NextResponse.json(
+          { error: 'Vous ne pouvez pas changer votre propre rôle. Demandez à un autre administrateur.' },
+          { status: 400 }
+        )
+      }
+      // Prevent removing the last ADMIN entirely (in case some other flow triggers this)
+      if (existing.role === 'ADMIN' && role !== 'ADMIN') {
+        const adminCount = await prisma.user.count({ where: { role: 'ADMIN' } })
+        if (adminCount <= 1) {
+          return NextResponse.json(
+            { error: 'Impossible: cet utilisateur est le dernier administrateur.' },
+            { status: 400 }
+          )
+        }
+      }
       updateData.role = role
     }
 
