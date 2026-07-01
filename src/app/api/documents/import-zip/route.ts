@@ -90,6 +90,41 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     let documentsCreated = 0
     const errors: string[] = []
 
+    // Detect if the ZIP already has a single common top-level directory.
+    // If yes → use as-is. If files are at root → auto-wrap in a folder named
+    // after the ZIP so the import lands as a discoverable single entry.
+    const visibleEntries = entries.filter((e) => !isHiddenEntry(e.entryName))
+    const topLevels = new Set<string>()
+    for (const e of visibleEntries) {
+      const first = e.entryName.replace(/\/$/, '').split('/')[0]
+      if (first) topLevels.add(first)
+    }
+    const singleTopFolder = topLevels.size === 1 && visibleEntries.some((e) => {
+      const first = e.entryName.replace(/\/$/, '').split('/')[0]
+      // At least one entry must be inside (contains a slash) with that top
+      return e.entryName.startsWith(first + '/')
+    })
+
+    // ZIP filename without extension, used as wrapping folder name if needed
+    const zipBaseName = zipFile.name.replace(/\.zip$/i, '').trim()
+    const wrapWithZipFolder = !singleTopFolder && zipBaseName.length > 0
+    let wrappingFolderId: string | null = null
+    if (wrapWithZipFolder) {
+      try {
+        const folder = await prisma.folder.create({
+          data: { name: zipBaseName, parentId },
+        })
+        wrappingFolderId = folder.id
+        foldersCreated++
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err)
+        errors.push(`Dossier racine "${zipBaseName}": ${msg}`)
+      }
+    }
+    // From here on, "effectiveParentId" is the destination for top-level files:
+    // either the auto-wrapping folder, or the target parent picked by the user
+    const effectiveParentId: string | null = wrappingFolderId ?? parentId
+
     // Collect all unique folder paths from entries
     const folderPaths = new Set<string>()
     for (const entry of entries) {
@@ -124,11 +159,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       const folderName = parts[parts.length - 1]
       if (!folderName) continue
 
-      // Determine parent: either a previously created folder, or the parentFolderId param
-      let dbParentId: string | null = parentId
+      // Determine parent: either a previously created folder, or effectiveParentId
+      // (which is either the wrapping folder if we created one, or user's target)
+      let dbParentId: string | null = effectiveParentId
       if (parts.length > 1) {
         const parentPath = parts.slice(0, -1).join('/')
-        dbParentId = folderMap.get(parentPath) ?? parentId
+        dbParentId = folderMap.get(parentPath) ?? effectiveParentId
       }
 
       try {
@@ -165,9 +201,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
         // Determine which folder this file belongs to
         const dir = dirname(entry.entryName)
-        let folderId: string | null = parentId
+        let folderId: string | null = effectiveParentId
         if (dir && dir !== '.') {
-          folderId = folderMap.get(dir) ?? parentId
+          folderId = folderMap.get(dir) ?? effectiveParentId
         }
 
         // Create title from filename without extension
