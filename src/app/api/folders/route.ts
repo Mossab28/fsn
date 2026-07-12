@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
       ? archiveFilter
       : { ...archiveFilter, parentId: parentId || null },
     include: {
-      _count: { select: { children: true, documents: true } },
+      _count: { select: { children: { where: { isArchived: false } }, documents: { where: { isArchived: false } } } },
     },
     orderBy: { name: 'asc' },
   })
@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
       parentId: parentId || null,
     },
     include: {
-      _count: { select: { children: true, documents: true } },
+      _count: { select: { children: { where: { isArchived: false } }, documents: { where: { isArchived: false } } } },
     },
   })
 

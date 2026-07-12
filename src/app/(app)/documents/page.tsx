@@ -86,6 +86,10 @@ function DocumentsPageInner() {
   const [renamingFolder, setRenamingFolder] = useState<string | null>(null)
   const [renameValue, setRenameValue] = useState('')
 
+  // Folder color edit
+  const [colorEditFolder, setColorEditFolder] = useState<string | null>(null)
+  const [colorEditValue, setColorEditValue] = useState<string | null>(null)
+
   // Folder move
   const [movingFolder, setMovingFolder] = useState<string | null>(null)
   const [moveTargetFolderId, setMoveTargetFolderId] = useState<string>('')
@@ -195,6 +199,7 @@ function DocumentsPageInner() {
     setDocMoveTargetFolderId(doc?.folderId || '')
     setDocMoveError('')
     setMovingDocument(docId)
+    fetchAllFolders() // refresh in case a folder was created since page load
   }
 
   const handleMoveDocument = async () => {
@@ -299,6 +304,26 @@ function DocumentsPageInner() {
       fetchAllFolders()
     } catch (e) {
       alert('Erreur réseau lors du renommage: ' + (e as Error).message)
+    }
+  }
+
+  const handleChangeFolderColor = async (folderId: string, color: string) => {
+    try {
+      const res = await fetch(`/api/folders/${folderId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ color }),
+      })
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        alert(body.error || `Échec du changement de couleur (HTTP ${res.status})`)
+        return
+      }
+      setColorEditFolder(null)
+      fetchContent()
+      fetchAllFolders()
+    } catch (e) {
+      alert('Erreur réseau: ' + (e as Error).message)
     }
   }
 
@@ -746,6 +771,7 @@ function DocumentsPageInner() {
                                   setMoveTargetFolderId(folder.parentId || '')
                                   setMoveError('')
                                   setContextFolder(null)
+                                  fetchAllFolders() // refresh in case a folder was created since page load
                                 }}
                                 style={{
                                   display: 'flex', alignItems: 'center', gap: '8px', width: '100%',
@@ -755,6 +781,22 @@ function DocumentsPageInner() {
                                 }}
                               >
                                 <FolderOpen size={14} /> Déplacer
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setColorEditFolder(folder.id)
+                                  setColorEditValue(folder.color)
+                                  setContextFolder(null)
+                                }}
+                                style={{
+                                  display: 'flex', alignItems: 'center', gap: '8px', width: '100%',
+                                  padding: '8px 12px', borderRadius: 'var(--radius-sm)',
+                                  background: 'transparent', border: 'none', color: 'var(--text-primary)',
+                                  fontSize: '13px', cursor: 'pointer', fontFamily: 'var(--font-body)',
+                                }}
+                              >
+                                <span style={{ width: '14px', height: '14px', borderRadius: '50%', background: folder.color || 'var(--accent)', flexShrink: 0 }} />
+                                Changer la couleur
                               </button>
                               <button
                                 onClick={() => {
@@ -1023,6 +1065,46 @@ function DocumentsPageInner() {
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
                 <Button variant="secondary" onClick={() => setMovingFolder(null)} disabled={moveSaving}>Annuler</Button>
                 <Button variant="primary" onClick={handleMoveFolder} loading={moveSaving}>Déplacer</Button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Change folder color modal */}
+      {colorEditFolder && (
+        <>
+          <div
+            onClick={() => setColorEditFolder(null)}
+            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 50 }}
+          />
+          <div style={{ position: 'fixed', inset: 0, zIndex: 51, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', pointerEvents: 'none' }}>
+            <div style={{ pointerEvents: 'auto', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-xl)', padding: '28px', width: '100%', maxWidth: '360px', boxShadow: 'var(--shadow-lg)' }}>
+              <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 16px' }}>
+                Couleur du dossier
+              </h3>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '20px' }}>
+                {FOLDER_COLORS.map((c) => (
+                  <button
+                    key={c}
+                    onClick={() => setColorEditValue(c)}
+                    style={{
+                      width: '32px', height: '32px', borderRadius: '50%',
+                      background: c, border: colorEditValue === c ? '3px solid var(--text-primary)' : '2px solid transparent',
+                      cursor: 'pointer', transition: 'all var(--transition)',
+                    }}
+                  />
+                ))}
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                <Button variant="secondary" onClick={() => setColorEditFolder(null)}>Annuler</Button>
+                <Button
+                  variant="primary"
+                  onClick={() => colorEditValue && handleChangeFolderColor(colorEditFolder, colorEditValue)}
+                  disabled={!colorEditValue}
+                >
+                  Enregistrer
+                </Button>
               </div>
             </div>
           </div>

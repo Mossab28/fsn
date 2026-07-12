@@ -1493,6 +1493,11 @@ export default function SearchPage() {
                       setDocMoveTargetFolderId(doc?.folderId || '')
                       setDocMoveError('')
                       setMovingDocument(id)
+                      // Refresh folder list in case one was created since page load
+                      fetch('/api/folders?all=true')
+                        .then((r) => r.json())
+                        .then((d) => setAllFolders(Array.isArray(d) ? d : []))
+                        .catch(() => {})
                     } : undefined}
                   />
                 ) : folderResults.length > 0 ? null : (

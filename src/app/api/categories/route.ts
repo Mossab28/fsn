@@ -21,7 +21,7 @@ export async function GET(_request: NextRequest): Promise<NextResponse> {
   try {
     const categories = await prisma.category.findMany({
       include: {
-        _count: { select: { documents: true } },
+        _count: { select: { documents: { where: { isArchived: false } } } },
       },
       orderBy: { name: 'asc' },
     })

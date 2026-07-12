@@ -198,6 +198,11 @@ export default function DocumentDetailPage() {
     )
     setEditError('')
     setEditOpen(true)
+    // Refresh folder list in case one was created since page load
+    fetch('/api/folders?all=true')
+      .then((r) => (r.ok ? r.json() : []))
+      .then((d) => setAllFolders(Array.isArray(d) ? d : []))
+      .catch(() => {})
   }
 
   const saveEdit = async () => {
