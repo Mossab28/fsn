@@ -159,9 +159,11 @@ function DocumentsPageInner() {
   }, [])
 
   const fetchAllFolders = useCallback(async () => {
-    // no-store: without it the browser can serve a stale cached response and a
-    // freshly created folder never shows up in the move selectors
-    const res = await fetch('/api/folders?all=true', { cache: 'no-store' })
+    // The folder tree must never come from cache: a folder created moments ago
+    // has to appear in the move selectors. no-store alone is not enough — a
+    // cache entry stored before no-store shipped can still be served — so the
+    // URL is made unique per call to bypass any cache entirely.
+    const res = await fetch(`/api/folders?all=true&_=${Date.now()}`, { cache: 'no-store' })
     if (res.ok) {
       const data = await res.json()
       if (Array.isArray(data)) setAllFolders(data)
@@ -994,6 +996,16 @@ function DocumentsPageInner() {
                   <option key={f.id} value={f.id}>{f.path}</option>
                 ))}
               </select>
+              {/* Spell out the destination: a mis-selection here silently moves
+                  the document somewhere the user never intended */}
+              <div style={{ marginTop: '10px', padding: '10px 12px', background: 'var(--accent-dim)', border: '1px solid rgba(0, 168, 142, 0.25)', borderRadius: 'var(--radius-md)', fontSize: '13px', color: 'var(--text-primary)' }}>
+                Destination :{' '}
+                <strong>
+                  {docMoveTargetFolderId
+                    ? folderPathOptions().find((f) => f.id === docMoveTargetFolderId)?.path ?? '—'
+                    : 'Racine (hors de tout dossier)'}
+                </strong>
+              </div>
               {docMoveError && (
                 <div style={{ marginTop: '10px', padding: '8px 12px', background: 'var(--red-dim)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: 'var(--radius-md)', color: 'var(--red)', fontSize: '13px' }}>
                   {docMoveError}

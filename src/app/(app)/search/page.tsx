@@ -1494,8 +1494,8 @@ export default function SearchPage() {
                       setDocMoveError('')
                       setMovingDocument(id)
                       // Refresh folder list in case one was created since page load.
-                      // no-store: the browser would otherwise serve a stale cached response.
-                      fetch('/api/folders?all=true', { cache: 'no-store' })
+                      // Unique URL per call so no cache layer can serve a stale tree.
+                      fetch(`/api/folders?all=true&_=${Date.now()}`, { cache: 'no-store' })
                         .then((r) => r.json())
                         .then((d) => setAllFolders(Array.isArray(d) ? d : []))
                         .catch(() => {})

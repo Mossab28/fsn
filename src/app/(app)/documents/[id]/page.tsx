@@ -198,9 +198,9 @@ export default function DocumentDetailPage() {
     )
     setEditError('')
     setEditOpen(true)
-    // Refresh folder list in case one was created since page load.
-    // no-store: the browser would otherwise serve a stale cached response.
-    fetch('/api/folders?all=true', { cache: 'no-store' })
+    // Refresh folder list in case one was created since page load. The URL is
+    // made unique per call so no cache layer can serve a stale folder tree.
+    fetch(`/api/folders?all=true&_=${Date.now()}`, { cache: 'no-store' })
       .then((r) => (r.ok ? r.json() : []))
       .then((d) => setAllFolders(Array.isArray(d) ? d : []))
       .catch(() => {})
