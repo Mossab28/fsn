@@ -3,6 +3,11 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
+// The folder tree changes as users create/rename/move folders. Any caching here
+// makes freshly created folders invisible in the "move to" selectors.
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions)
   if (!session?.user) {
@@ -31,7 +36,9 @@ export async function GET(req: NextRequest) {
     orderBy: { name: 'asc' },
   })
 
-  return NextResponse.json(folders)
+  return NextResponse.json(folders, {
+    headers: { 'Cache-Control': 'no-store, must-revalidate' },
+  })
 }
 
 export async function POST(req: NextRequest) {

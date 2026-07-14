@@ -159,7 +159,9 @@ function DocumentsPageInner() {
   }, [])
 
   const fetchAllFolders = useCallback(async () => {
-    const res = await fetch('/api/folders?all=true')
+    // no-store: without it the browser can serve a stale cached response and a
+    // freshly created folder never shows up in the move selectors
+    const res = await fetch('/api/folders?all=true', { cache: 'no-store' })
     if (res.ok) {
       const data = await res.json()
       if (Array.isArray(data)) setAllFolders(data)
@@ -194,12 +196,13 @@ function DocumentsPageInner() {
     }
   }
 
-  const openDocMove = (docId: string) => {
+  const openDocMove = async (docId: string) => {
     const doc = documents.find((d) => d.id === docId)
     setDocMoveTargetFolderId(doc?.folderId || '')
     setDocMoveError('')
+    // Await so the modal never opens on a stale folder list
+    await fetchAllFolders()
     setMovingDocument(docId)
-    fetchAllFolders() // refresh in case a folder was created since page load
   }
 
   const handleMoveDocument = async () => {
@@ -766,12 +769,13 @@ function DocumentsPageInner() {
                                 <Pencil size={14} /> Renommer
                               </button>
                               <button
-                                onClick={() => {
-                                  setMovingFolder(folder.id)
+                                onClick={async () => {
                                   setMoveTargetFolderId(folder.parentId || '')
                                   setMoveError('')
                                   setContextFolder(null)
-                                  fetchAllFolders() // refresh in case a folder was created since page load
+                                  // Await so the modal never opens on a stale folder list
+                                  await fetchAllFolders()
+                                  setMovingFolder(folder.id)
                                 }}
                                 style={{
                                   display: 'flex', alignItems: 'center', gap: '8px', width: '100%',
